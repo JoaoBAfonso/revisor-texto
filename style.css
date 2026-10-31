@@ -639,3 +639,49 @@
   #lawResult .toolkit li { margin-bottom: var(--s3); }
   #lawResult .src { padding-top: var(--s4); border-top: 2px solid var(--line); color: var(--muted); }
 }
+
+
+/* ───────────────────────── Direito: ritmo vertical, centragem e paleta Fumaça ───────────────────────── */
+@layer utilities {
+  #lawResult { display: grid; gap: clamp(var(--s7), 9vw, 6rem); justify-items: stretch; }
+  #lawResult > * { margin: 0 !important; }
+  #lawResult > div:not([class]) { display: contents; }
+  #lawResult { --gap: clamp(var(--s7), 9vw, 6rem); }
+
+  /* Só laranja, preto e bege */
+  #lawResult .law-section { --accent: var(--orange); }
+  #lawResult .law-found, #lawResult .law-act { --accent: var(--ink); }
+  #lawResult .law-section > h3::before, #lawResult .law-act ol li::before { background: var(--accent, var(--ink)); }
+  #lawResult .law-act .law-block h4::before { background: var(--orange); }
+  #lawResult .law-alert, #lawResult .law-topic, #lawResult .law-model { border-left-color: var(--orange); }
+  #lawResult .law-area { color: var(--orange); }
+
+  /* Centragem: abertura e títulos de secção */
+  #lawResult .law-tabs, #lawResult .law-nav { justify-content: center; }
+  #lawResult .law-hero { border-left-width: 2px; border-top: 10px solid var(--orange); text-align: center; }
+  #lawResult .law-hero > * { margin-inline: auto; }
+  #lawResult .law-hero .law-note { max-width: 42rem; }
+  #lawResult .law-hero .law-block, #lawResult .law-hero .law-alert { text-align: left; max-width: 46rem; }
+  #lawResult .law-section > h3 {
+    flex-direction: column; justify-content: center; gap: var(--s3);
+    padding: 0 0 var(--s4); border-bottom: 0; text-align: center;
+  }
+  #lawResult .law-section > h3::after { content: ""; display: block; width: 4rem; height: 4px; background: var(--accent); }
+  #lawResult .law-section > .meta { margin-inline: auto; text-align: center; }
+  #lawResult .law-section > h3 + :not(.meta), #lawResult .law-section > .meta + * { margin-top: var(--s6); }
+  #lawResult .law-section { max-width: 100%; }
+  #lawResult .law-group h3 { justify-content: center; }
+  #lawResult .law-group { max-width: 48rem; margin-inline: auto; }
+  #lawResult .law-model, #lawResult .law-topic { max-width: 48rem; margin-inline: auto; }
+  #lawResult .law-act .law-block { max-width: 44rem; margin-inline: auto; }
+  #lawResult .angle { text-align: left; }
+  #lawResult .src { text-align: center; }
+  #lawResult .src { max-width: 44rem; margin-inline: auto !important; }
+  #view-direito .def-head { justify-content: center; text-align: center; }
+  #view-direito .doubts-form { max-width: 44rem; margin-inline: auto; }
+  #view-direito details.sources { max-width: 44rem; margin-inline: auto; }
+}
+
+@layer utilities { #lawResult .law-hero { border-left-color: var(--ink); } }
+
+@layer utilities { #lawResult { grid-template-columns: minmax(0, 1fr); } #lawResult * { min-width: 0; } }
