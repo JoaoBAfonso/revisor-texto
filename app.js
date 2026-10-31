@@ -13,6 +13,8 @@
   let typing = false;
   let typingTimer = null;
   let speller = null;
+  let other = null; // dicionários do outro idioma, para detetar palavras escritas noutra língua
+  const LANG_NAME = { 'pt-PT': 'português', en: 'inglês' };
   let timer = null;
   let issues = [];
   let activeIndex = -1;
@@ -56,9 +58,9 @@
     return { label, hunspell: factory.create(affPath, dicPath) };
   }
 
-  async function loadSpeller(lang) {
+  async function loadSpeller(lang, quiet = false) {
     if (spellers[lang]) return spellers[lang];
-    statusEl.textContent = 'A carregar dicionário…';
+    if (!quiet) statusEl.textContent = 'A carregar dicionário…';
     const dicts = await Promise.all(LANGUAGES[lang].map(loadDictionary));
     spellers[lang] = dicts;
     return spellers[lang];
@@ -88,6 +90,16 @@
       // Sugestões que só diferem no acento (nao → não) vêm primeiro.
       const base = stripAccents(word);
       suggestions.sort((a, b) => (stripAccents(b.text) === base) - (stripAccents(a.text) === base));
+      const foreign = other && word.length >= 3 ? other.dicts.filter((d) => d.hunspell.spell(word)) : [];
+      if (foreign.length) {
+        return {
+          type: 'foreign',
+          note: `Pode ser ${LANG_NAME[other.lang]}: a palavra existe no dicionário de ${LANG_NAME[other.lang]}` +
+            `${other.lang === 'en' ? ` (${foreign.map((d) => d.label).join(', ')})` : ''}. ` +
+            'Se é intencional, ignora ou acrescenta ao dicionário.',
+          suggestions: suggestions.slice(0, 5),
+        };
+      }
       return { type: 'error', suggestions: suggestions.slice(0, 5) };
     }
     // Correta só em algumas variantes: sugere o equivalente nas restantes.
@@ -384,8 +396,20 @@
       loadPersonal(lang);
       renderPersonal();
       ignored = new Set();
+      other = null;
       check();
+      loadOther(lang);
     } catch (e) { statusEl.textContent = e.message; }
+  }
+
+  async function loadOther(lang) {
+    const otherLang = lang === 'en' ? 'pt-PT' : 'en';
+    try {
+      const dicts = await loadSpeller(otherLang, true);
+      if (langEl.value !== lang) return;
+      other = { lang: otherLang, dicts };
+      check();
+    } catch { /* sem o segundo dicionário só se perde a sugestão de outra língua */ }
   }
 
   function autoDetectLanguage() {
@@ -643,6 +667,6 @@
   renderTargets();
   updateTranslateButton();
   loadSpeller(langEl.value)
-    .then((s) => { speller = s; check(); })
+    .then((s) => { speller = s; check(); loadOther(langEl.value); })
     .catch((e) => { statusEl.textContent = `${e.message}. Abre a página através de um servidor (não file://).`; });
 })();

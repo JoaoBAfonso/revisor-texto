@@ -51,6 +51,10 @@ mark.variant { background: #ffe0cf; border-bottom-color: var(--orange); }
 mark.variant.active { background: #ffbe9e; }
 mark.typo { background: #d6e4fb; border-bottom-color: var(--blue); }
 mark.typo.active { background: #a9c6f5; }
+mark.foreign { background: #e8dcff; border-bottom-color: var(--purple); }
+mark.foreign.active { background: #cdb3ff; }
+#issues li.foreign .word { color: var(--purple); }
+#issues li.foreign .note { background: #f0e8ff; border-left-color: var(--purple); }
 #issues li.variant .word { color: var(--orange-dark); }
 #issues li.typo .word { color: var(--blue); }
 .note { display: block; font-size: .85rem; background: #ffeee5; border-left: 4px solid var(--orange); padding: var(--s2) var(--s3); margin: var(--s2) 0 var(--s3); }
