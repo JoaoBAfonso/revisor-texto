@@ -297,8 +297,11 @@
       li.onmouseleave = () => { activeIndex = -1; renderBackdrop(); };
       li.onclick = (e) => {
         if (e.target.closest('button')) return;
-        textEl.focus();
+        activeIndex = i;
+        renderBackdrop();
+        textEl.focus({ preventScroll: true });
         textEl.setSelectionRange(it.start, it.end);
+        textEl.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
       };
       issuesEl.append(li);
     });

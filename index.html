@@ -2,11 +2,15 @@
 <html lang="pt">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#f67844">
+  <meta name="color-scheme" content="light">
+  <meta name="description" content="Revisor de texto independente: ortografia, acentuação, definições, tradução, dúvidas de língua, notícias e legislação.">
   <title>Revisor de Texto</title>
-  <link rel="stylesheet" href="style.css?v=12">
+  <link rel="stylesheet" href="style.css?v=13">
 </head>
 <body>
+  <a class="skip" href="#text">Saltar para o editor</a>
   <header>
     <a class="brand" href="./" aria-label="Revisor de texto">
       <img class="logo" src="assets/fumaca-logo.png" alt="Fumaça" width="591" height="160">
@@ -57,7 +61,9 @@
           </div>
         </form>
       </dialog>
+    </section>
 
+    <div class="tools">
       <section class="definition">
         <div class="def-head">
           <h2>Definição</h2>
@@ -134,10 +140,11 @@
           <button id="trApply" type="button">Substituir no editor</button>
         </div>
       </section>
-    </section>
+    </div>
 
-    <aside>
+    <aside aria-label="Possíveis erros">
       <h2>Possíveis erros <span id="count"></span></h2>
+      <p class="aside-hint">Seleciona um erro para o localizar no texto.</p>
       <ul id="issues"></ul>
       <details>
         <summary>Dicionário pessoal (<span id="personalCount">0</span>)</summary>
@@ -159,12 +166,12 @@
   </dialog>
 
   <footer>
-    O texto é verificado no teu browser e nunca sai do teu computador. A palavra que escolheres definir é enviada ao Priberam (através do proxy) ou ao Wiktionary. O termo que pesquisares no Ciberdúvidas, em notícias ou em fontes jurídicas é enviado a esses sites ou a motores de pesquisa (através do proxy) (através do proxy, e no caso das notícias, via Bing Notícias). O texto que mandares traduzir é enviado ao DeepL (através do proxy).
+    O texto é verificado no teu browser e nunca sai do teu computador. A palavra que escolheres definir é enviada ao Priberam (através do proxy) ou ao Wiktionary. O termo que pesquisares no Ciberdúvidas, em notícias ou em fontes jurídicas é enviado a esses sites ou a motores de pesquisa (através do proxy; nas notícias, via Bing Notícias). O texto que mandares traduzir é enviado ao DeepL (através do proxy).
     Dicionários: LibreOffice/wooorm (LGPL-3.0 ou MPL-2.0).
   </footer>
 
   <script src="config.js"></script>
   <script src="vendor/hunspell.js"></script>
-  <script src="app.js?v=12"></script>
+  <script src="app.js?v=13"></script>
 </body>
 </html>
