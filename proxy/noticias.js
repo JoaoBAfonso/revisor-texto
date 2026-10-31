@@ -1,7 +1,7 @@
 // Pesquisa em sites de notícias através do RSS do Bing Notícias, que dá o endereço direto e um resumo.
 // Devolve títulos e resumos, nunca o artigo completo.
 import { toText, decode } from './ciberduvidas.js';
-import { readHtml } from './texto.js';
+import { readHtml, fixSpacing } from './texto.js';
 
 const UA = 'Mozilla/5.0 (compatible; RevisorDeTexto/1.0)';
 const PER_SITE = 6;
@@ -125,7 +125,8 @@ export async function fetchArticle(url) {
 
   let text = paragraphs.join('\n\n');
   const fullBody = ld?.articleBody ? toText(ld.articleBody) : '';
-  if (fullBody.length > text.length) text = fullBody;
+  if (fullBody.length > text.length) text = fullBody.split(/\n+/).join('\n\n');
+  text = text.split('\n\n').map(fixSpacing).filter(Boolean).join('\n\n');
   if (text.length > MAX_CHARS) text = `${text.slice(0, MAX_CHARS).replace(/\s+\S*$/, '')}…`;
   return { url: res.url, authors, description, text };
 }

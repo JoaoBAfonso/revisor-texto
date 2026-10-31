@@ -29,8 +29,112 @@ const TRIMMERS = {
   },
 };
 
+// ── Arrumação do texto ────────────────────────────────────────────────────────
+// Convenções que o cliente interpreta: «# » título do documento, «## » cabeçalho, «- » item de lista
+// e «| Rótulo | valor » linha de metadados.
+const END = /[.:;!?)»”"…\]]$/;
+const DGSI_LABELS = [
+  'Processo', 'Nº Convencional', 'N.º Convencional', 'Relator', 'Descritores', 'Data do Acordão', 'Data do Acórdão', 'Votação',
+  'Texto Integral', 'Privacidade', 'Meio Processual', 'Decisão', 'Área Temática', 'Doutrina', 'Legislação Nacional',
+  'Legislação Comunitária', 'Legislação Estrangeira', 'Jurisprudência Nacional', 'Jurisprudência Internacional',
+  'Referências Internacionais', 'Nº do Documento', 'Recorrente', 'Recorrido', 'Tribunal Recorrido', 'Apenso', 'Acórdão',
+];
+const BODY_LABELS = ['Sumário', 'Decisão Texto Integral', 'Texto Integral Parcial', 'Relatório', 'Fundamentação', 'Acórdão'];
+const labelOf = (line, list) => list.find((l) => new RegExp(`^${l}\\s*:`, 'i').test(line));
+
+export function fixSpacing(s) {
+  return s
+    .replace(/[ \t\u00a0]+/g, ' ')
+    .replace(/\s+([,;:.!?»)\]])(?=\s|$)/g, '$1')
+    .replace(/([«(\[])\s+/g, '$1')
+    .trim();
+}
+
+// Junta linhas partidas a meio de uma frase (texto «hard-wrapped» ou com <br>).
+function reflow(lines) {
+  const out = [];
+  for (const line of lines) {
+    const prev = out[out.length - 1];
+    const broken = prev && prev.length >= 55 && !END.test(prev) && /^[a-zà-ÿ(]/.test(line)
+      && !/^(##? |- |\| )/.test(prev) && !/^[a-z]\)\s/.test(line);
+    if (broken) out[out.length - 1] = `${prev}${prev.endsWith('-') ? '' : ' '}${line}`;
+    else out.push(line);
+  }
+  return out;
+}
+
+// Os acórdãos do DGSI vêm como pares «Rótulo:» / valores em parágrafos soltos; junta-os em metadados legíveis.
+function tidyDgsi(lines) {
+  const out = [];
+  let i = 0;
+  const head = [];
+  while (i < lines.length && !labelOf(lines[i], DGSI_LABELS) && head.length < 3) head.push(lines[i++]);
+  head.forEach((l) => out.push(`# ${l}`));
+  while (i < lines.length) {
+    const line = lines[i];
+    const body = labelOf(line, BODY_LABELS);
+    const meta = labelOf(line, DGSI_LABELS);
+    if (body && !(meta && body === 'Acórdão')) {
+      out.push(`## ${line.replace(/\s*:\s*$/, '').replace(/^([^:]+):\s*/, '$1')}`);
+      i++;
+      continue;
+    }
+    if (!meta) { out.push(line); i++; continue; }
+    const items = [];
+    const first = line.replace(new RegExp(`^${meta}\\s*:\\s*`, 'i'), '').trim();
+    if (first) items.push(first);
+    i++;
+    while (i < lines.length && !labelOf(lines[i], DGSI_LABELS) && !labelOf(lines[i], BODY_LABELS)) items.push(lines[i++]);
+    const label = meta.replace('Nº', 'N.º');
+    if (/^(Texto Integral|Privacidade)$/i.test(meta)) continue;
+    if (items.length <= 1) out.push(`| ${label} | ${items[0] || '—'}`);
+    else if (items.length <= 12 && items.every((t) => t.length < 45)) out.push(`| ${label} | ${items.join(' · ')}`);
+    else { out.push(`## ${label}`); items.forEach((t) => out.push(`- ${t.replace(/^-\s*/, '')}`)); }
+  }
+  return out;
+}
+
+const ARTICLE = /^Artigo\s+\d+\.?\s*[º°o]?(?:-[A-Za-z]+)?\.?$/i;
+const SECTION = /^(PARTE|LIVRO|T[IÍ]TULO|CAP[IÍ]TULO|SEC[CÇ][AÃ]O|SUBSEC[CÇ][AÃ]O)\b/i;
+const NOISE = /^(Consultar vers[õo]es anteriores|-?\s*\d+[ªa]\s*vers[ãa]o\b|Imprimir|Voltar ao topo)/i;
+
+// Cabeçalhos legais, epígrafes ligadas ao artigo e ruído de navegação removido.
+function tidyLegal(lines) {
+  const out = [];
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    if (NOISE.test(line) || /^#+ /.test(line)) { out.push(line); continue; }
+    if (ARTICLE.test(line)) {
+      const next = lines[i + 1] || '';
+      const epigraph = /^\(.{2,100}\)$/.test(next) || (next.length < 90 && !END.test(next) && !/^(\d+|[a-z])\s*[-–).]/.test(next) && !ARTICLE.test(next) && !NOISE.test(next));
+      if (epigraph) { out.push(`## ${line.replace(/\.$/, '')} — ${next.replace(/^\(|\)$/g, '')}`); i++; } else out.push(`## ${line}`);
+    } else if (SECTION.test(line) && line.length < 90) out.push(`## ${line}`);
+    else if (line.length < 70 && /^[IVXL]+\s*[-–.)]\s*\S/.test(line) && line === line.toUpperCase()) out.push(`## ${line}`);
+    else out.push(line);
+  }
+  return out;
+}
+
+export function tidy(lines, host = '') {
+  const cleaned = lines.map(fixSpacing).filter(Boolean);
+  const body = /(^|\.)dgsi\.pt$/.test(host) ? tidyDgsi(cleaned) : cleaned;
+  return tidyLegal(reflow(body)).filter((l, i, arr) => l !== arr[i - 1]);
+}
+
+// Extrai um artigo (com o seu cabeçalho) de um diploma já arrumado.
+export function sliceArticle(lines, n) {
+  const num = String(n).replace(/\D/g, '');
+  const start = lines.findIndex((l) => {
+    const m = /^## Artigo\s+(\d+)\.?\s*[º°o]?(-[A-Za-z]+)?/i.exec(l);
+    return m && m[1] === num && !m[2];
+  });
+  if (start < 0) return [];
+  const end = lines.findIndex((l, i) => i > start && /^## (Artigo|PARTE|LIVRO|T[IÍ]TULO|CAP[IÍ]TULO|SEC[CÇ][AÃ]O)\b/i.test(l));
+  return lines.slice(start, end < 0 ? undefined : end);
+}
+
 // Escolhe o contentor com mais texto (main, article ou body) e converte-o em parágrafos.
-export function extractText(html, host = '') {
+export function extractText(html, host = '', artigo = '') {
   const clean = html
     .replace(/<!--[\s\S]*?-->/g, '')
     .replace(/<(script|style|noscript|nav|header|footer|aside|form|select|button|svg|iframe)\b[\s\S]*?<\/\1>/gi, '');
@@ -42,7 +146,8 @@ export function extractText(html, host = '') {
   const best = containers.map(toParagraphs).sort((a, b) => b.join('').length - a.join('').length)[0] || [];
   // Remove repetições consecutivas (menus, botões) mantendo a ordem.
   const trim = Object.entries(TRIMMERS).find(([d]) => host === d || host.endsWith(`.${d}`))?.[1];
-  const lines = (trim ? trim(best) : best).filter((l, i, arr) => l !== arr[i - 1]);
+  const all = tidy(trim ? trim(best) : best, host);
+  const lines = artigo ? sliceArticle(all, artigo) : all;
   let text = lines.join('\n\n');
   const truncated = text.length > MAX_CHARS;
   if (truncated) text = `${text.slice(0, MAX_CHARS).replace(/\s+\S*$/, '')}…`;
@@ -55,7 +160,7 @@ function normalizeUrl(u) {
   return u;
 }
 
-export async function fetchLawText(url, isAllowed) {
+export async function fetchLawText(url, isAllowed, artigo = '') {
   const u = normalizeUrl(new URL(url));
   if (!/^https?:$/.test(u.protocol) || !isAllowed(u.hostname)) throw new Error('Fonte não permitida');
   const res = await fetch(u.href, { headers: { 'User-Agent': UA, 'Accept-Language': 'pt-PT,pt;q=0.9' }, redirect: 'follow' });
@@ -63,6 +168,6 @@ export async function fetchLawText(url, isAllowed) {
   if (!isAllowed(new URL(res.url).hostname)) throw new Error('Redirecionamento não permitido');
   const type = res.headers.get('content-type') || '';
   if (!/html|text/i.test(type)) return { url: res.url, title: '', text: '', unsupported: type.split(';')[0] || 'ficheiro' };
-  const { title, text, truncated } = extractText(await readHtml(res), new URL(res.url).hostname);
+  const { title, text, truncated } = extractText(await readHtml(res), new URL(res.url).hostname, artigo);
   return { url: res.url, title, text, truncated };
 }

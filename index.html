@@ -7,7 +7,7 @@
   <meta name="color-scheme" content="light">
   <meta name="description" content="Revisor de texto independente: ortografia, acentuação, definições, tradução, dúvidas de língua, notícias e legislação.">
   <title>Revisor de Texto</title>
-  <link rel="stylesheet" href="style.css?v=18">
+  <link rel="stylesheet" href="style.css?v=19">
 </head>
 <body>
   <a class="skip" href="#text">Saltar para o editor</a>
@@ -64,15 +64,8 @@
     </section>
 
     <div class="tools">
-      <div class="tabs" role="tablist" aria-label="Ferramentas">
-        <button type="button" class="tab" role="tab" id="tab-definition" data-tool="definition" aria-controls="tool-definition">Definição</button>
-        <button type="button" class="tab" role="tab" id="tab-doubts" data-tool="doubts" aria-controls="doubts">Dúvidas</button>
-        <button type="button" class="tab" role="tab" id="tab-news" data-tool="news" aria-controls="news">Notícias</button>
-        <button type="button" class="tab" role="tab" id="tab-law" data-tool="law" aria-controls="law">Direito</button>
-        <button type="button" class="tab" role="tab" id="tab-translation" data-tool="translation" aria-controls="tool-translation">Tradução</button>
-      </div>
 
-      <section class="definition" id="tool-definition" data-tool="definition" role="tabpanel" aria-labelledby="tab-definition">
+      <section class="definition" id="tool-definition" data-tool="definition">
         <div class="def-head">
           <h2>Definição</h2>
           <button id="define" type="button" disabled>Ver definição da palavra selecionada</button>
@@ -80,7 +73,7 @@
         <div id="definition" aria-live="polite">Seleciona uma palavra no texto para ver o significado (português: Priberam; inglês: Wiktionary).</div>
       </section>
 
-      <section class="doubts" id="doubts" data-tool="doubts" role="tabpanel" aria-labelledby="tab-doubts">
+      <section class="doubts" id="doubts" data-tool="doubts">
         <div class="def-head">
           <h2>Dúvidas (Ciberdúvidas)</h2>
         </div>
@@ -91,7 +84,7 @@
         <div id="doubtsResult" aria-live="polite">Seleciona uma palavra ou expressão no texto, ou escreve-a acima, para ver dúvidas semelhantes já respondidas (só português).</div>
       </section>
 
-      <section class="doubts news" id="news" data-tool="news" role="tabpanel" aria-labelledby="tab-news">
+      <section class="doubts news" id="news" data-tool="news">
         <div class="def-head">
           <h2>Notícias</h2>
         </div>
@@ -120,7 +113,7 @@
         <div id="newsResult" aria-live="polite">Vê como uma palavra ou expressão é usada em notícias recentes (só português).</div>
       </section>
 
-      <section class="doubts news law" id="law" data-tool="law" role="tabpanel" aria-labelledby="tab-law">
+      <section class="doubts news law" id="law" data-tool="law">
         <div class="def-head">
           <h2>Direito e legislação</h2>
         </div>
@@ -147,7 +140,7 @@
         <div id="lawResult" aria-live="polite">Descobre que leis, acórdãos e deliberações podem ser relevantes para uma palavra ou expressão (só português).</div>
       </section>
 
-      <section class="translation" id="tool-translation" data-tool="translation" role="tabpanel" aria-labelledby="tab-translation">
+      <section class="translation" id="tool-translation" data-tool="translation">
         <div class="def-head">
           <h2>Tradução (DeepL)</h2>
           <div class="tr-controls">
@@ -196,6 +189,6 @@
   <script src="config.js"></script>
   <script src="vendor/hunspell.js"></script>
   <script src="modelos.js?v=1"></script>
-  <script src="app.js?v=19"></script>
+  <script src="app.js?v=20"></script>
 </body>
 </html>

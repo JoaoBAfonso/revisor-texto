@@ -163,19 +163,31 @@
     padding: var(--s6) max(var(--gutter), env(safe-area-inset-right)) var(--s6) max(var(--gutter), env(safe-area-inset-left));
   }
   .editor { grid-area: editor; min-width: 0; }
-  .tools { grid-area: tools; min-width: 0; display: grid; gap: 0; }
-  .tools > section[hidden] { display: none; }
-  .tabs { display: flex; gap: 2px; overflow-x: auto; scrollbar-width: none; border-bottom: 3px solid var(--ink); }
-  .tabs::-webkit-scrollbar { display: none; }
-  .tab {
-    flex: 1 0 auto; min-height: var(--tap); padding: var(--s2) var(--s4);
-    border: 0; background: var(--sand); color: var(--ink);
-    font-size: .85rem; letter-spacing: .06em; text-transform: uppercase;
+  .tools { grid-area: tools; min-width: 0; display: grid; gap: var(--s4); align-content: start; }
+  .foldable > .fold-body[hidden] { display: none; }
+  .tools > section { border: 2px solid var(--ink); background: var(--card); padding: var(--s4); }
+  .tools > section.is-collapsed { padding-block: var(--s2); }
+  .foldable h2 { margin: 0; }
+  .foldable > .def-head { margin-bottom: 0; }
+  .foldable > .fold-body { margin-top: var(--s4); }
+  button.fold {
+    display: flex; align-items: center; justify-content: space-between; gap: var(--s3);
+    width: 100%; padding: var(--s2) 0; border: 0; background: transparent; color: inherit;
+    font: inherit; letter-spacing: inherit; text-transform: inherit; text-align: left;
   }
-  .tab[aria-selected="true"] { background: var(--ink); color: #fff; }
-  @media (hover: hover) { .tab[aria-selected="false"]:hover { background: var(--orange); color: #fff; } }
-  .tab:focus-visible { outline: 3px solid var(--orange); outline-offset: -3px; }
-  aside { grid-area: aside; min-width: 0; }
+  @media (hover: hover) { button.fold:hover:not(:disabled) { background: transparent; color: var(--orange-dark); } }
+  .chev {
+    flex: none; width: .6em; height: .6em; margin-right: .2em;
+    border: solid currentColor; border-width: 0 3px 3px 0;
+    transform: rotate(45deg); transition: transform .2s var(--ease);
+  }
+  .is-collapsed > * > button.fold .chev, .is-collapsed > button.fold .chev { transform: rotate(-45deg); }
+  .doc-list { display: grid; gap: var(--s1); }
+  .kv { margin: var(--s1) 0; }
+  .kv strong { color: var(--muted); margin-right: var(--s2); }
+  .alinea { margin-left: var(--s5); }
+  .law-block.crp { border-left: 6px solid var(--orange); background: var(--sand); padding: var(--s3) var(--s4); }
+  .crp-list { display: grid; gap: var(--s3); }  aside { grid-area: aside; min-width: 0; }
 
   @media (max-width: 900px) {
     main {

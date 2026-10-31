@@ -1,7 +1,7 @@
 // Pesquisa jurídica: interpreta o termo (área do direito, diplomas relevantes, citações como «Lei n.º 2/99»),
 // junta o guia jurídico (direitos, passos, prazos, entidades) e procura em fontes oficiais.
 import { toText, decode } from './ciberduvidas.js';
-import { TOPICS, ENTITIES, TOOLKIT } from './guia.js';
+import { TOPICS, ENTITIES, TOOLKIT, CRP, TOPIC_CRP } from './guia.js';
 
 const PER_SOURCE = 10;
 
@@ -53,17 +53,37 @@ function parseCitation(term) {
   return null;
 }
 
+// Pontua um termo contra uma lista de chaves (prefixos de palavras; «!» no fim exige palavra inteira).
+function keyScore(keys, text) {
+  return keys.reduce((s, k) => {
+    const whole = k.endsWith('!');
+    const src = (whole ? k.slice(0, -1) : k).replace(/ /g, '\\s+');
+    return new RegExp(`\\b${src}${whole ? '\\b' : ''}`).test(text) ? s + 1 + k.length / 100 : s;
+  }, 0);
+}
+
+// Artigos da Constituição por relevância: os ligados à área jurídica identificada pesam mais,
+// mas qualquer artigo cujas palavras-chave apareçam no termo também entra.
+function rankCrp(text, linked) {
+  return CRP.map((c) => {
+    const idx = linked.indexOf(c.art);
+    const score = keyScore(c.keys, text) * 2 + (idx >= 0 ? 4 - idx * 0.5 : 0);
+    return { c, score };
+  }).filter((x) => x.score > 0).sort((a, b) => b.score - a.score).slice(0, 5)
+    .map(({ c }) => ({ art: c.art, title: c.title, text: c.text }));
+}
+
 export function interpret(term) {
   const text = ` ${norm(term)} `;
-  const hits = TOPICS.map((t) => {
-    const score = t.keys.reduce((s, k) => (new RegExp(`\\b${k.replace(/ /g, '\\s+')}`).test(text) ? s + 1 + k.length / 100 : s), 0);
-    return { t, score };
-  }).filter((h) => h.score > 0).sort((a, b) => b.score - a.score).slice(0, 3).map((h) => h.t);
+  const hits = TOPICS.map((t) => ({ t, score: keyScore(t.keys, text) }))
+    .filter((h) => h.score > 0).sort((a, b) => b.score - a.score).slice(0, 3).map((h) => h.t);
   return {
     citation: parseCitation(term),
+    constitution: rankCrp(text, []),
     topics: hits.map((t) => ({
       id: t.id, area: t.area, note: t.note, rights: t.rights, steps: t.steps, deadlines: t.deadlines,
       arguments: t.arguments, refs: t.refs, expand: t.expand, also: t.also || [],
+      crp: rankCrp(text, TOPIC_CRP[t.id] || []),
       entities: (t.entities || []).map((k) => ENTITIES[k]).filter(Boolean),
     })),
     toolkit: TOOLKIT.map(({ title, text, ent }) => ({ title, text, entities: ent.map((k) => ENTITIES[k]).filter(Boolean) })),
@@ -173,6 +193,9 @@ export async function searchLaw(term, keys, env = {}) {
     // Fontes que a área recomenda, mesmo que o utilizador não as tenha marcado.
     const extra = main.also.filter((k) => LAW_SOURCES[k] && !chosen.includes(k));
     if (extra.length) jobs.push({ keys: extra, query: `${term} ${main.expand}`, related: true, perSite: true });
+    // Jurisprudência constitucional sobre o artigo mais relevante da Constituição.
+    const lead = main.crp?.[0];
+    if (lead) jobs.push({ keys: chosen, query: `"artigo ${lead.art}.º da Constituição" ${term}`, related: true });
   }
 
   const settled = await Promise.allSettled(jobs.map(run));

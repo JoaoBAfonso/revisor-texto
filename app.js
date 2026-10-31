@@ -549,7 +549,7 @@
   async function showDefinition() {
     const word = selectedWord();
     if (!word) return;
-    showTool('definition');
+    openPanel($('tool-definition'));
     const lang = langEl.value;
     const key = `${lang}:${word.toLowerCase()}`;
     if (definitionCache.has(key)) return renderDefinition(definitionCache.get(key), lang);
@@ -637,31 +637,43 @@
     input.addEventListener('input', sync);
     return {
       section, input, result, say, sync, run,
-      ask(term) { input.value = term; sync(); showTool(section.dataset.tool); section.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); run(); },
+      ask(term) { input.value = term; sync(); openPanel(section); section.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); run(); },
     };
   }
 
-  // Separadores das ferramentas: um painel visível de cada vez
-  const toolTabs = [...document.querySelectorAll('.tools > .tabs .tab')];
-  const toolPanels = [...document.querySelectorAll('.tools > section[data-tool]')];
-  function showTool(name, { focus = false } = {}) {
-    for (const tab of toolTabs) {
-      const on = tab.dataset.tool === name;
-      tab.setAttribute('aria-selected', String(on));
-      tab.tabIndex = on ? 0 : -1;
-      if (on && focus) tab.focus();
-    }
-    for (const panel of toolPanels) panel.hidden = panel.dataset.tool !== name;
-    try { sessionStorage.setItem('tool', name); } catch { /* ignorar */ }
+  // Painéis recolhíveis: o cabeçalho passa a ser um botão com ícone; o resto do conteúdo vai para um corpo que se esconde.
+  // O estado (aberto/fechado) dos painéis com «key» fica guardado neste navegador.
+  const folds = new Map();
+  let foldSeq = 0;
+  function fold(host, head, { open = true, key = '' } = {}) {
+    const title = head.matches('h2, h3') ? head : head.querySelector('h2, h3');
+    const saved = key ? store.get('folds', {})[key] : undefined;
+    const body = h('div', { class: 'fold-body', id: `fold-${++foldSeq}` });
+    [...host.childNodes].filter((n) => n !== head).forEach((n) => body.append(n));
+    host.append(body);
+    host.classList.add('foldable');
+    const btn = h('button', { type: 'button', class: 'fold', 'aria-controls': body.id });
+    btn.append(...title.childNodes, h('span', { class: 'chev', 'aria-hidden': 'true' }));
+    title.append(btn);
+    const set = (value, persist = true) => {
+      body.hidden = !value;
+      btn.setAttribute('aria-expanded', String(value));
+      host.classList.toggle('is-collapsed', !value);
+      if (key && persist) store.set('folds', { ...store.get('folds', {}), [key]: value });
+    };
+    set(saved ?? open, false);
+    btn.addEventListener('click', () => set(body.hidden));
+    folds.set(host, set);
+    return host;
   }
-  toolTabs.forEach((tab, i) => {
-    tab.addEventListener('click', () => showTool(tab.dataset.tool));
-    tab.addEventListener('keydown', (e) => {
-      const step = { ArrowRight: 1, ArrowLeft: -1 }[e.key];
-      if (step) { e.preventDefault(); showTool(toolTabs[(i + step + toolTabs.length) % toolTabs.length].dataset.tool, { focus: true }); }
-    });
+  const openPanel = (host) => folds.get(host)?.(true);
+
+  [['tool-definition', true], ['doubts', true], ['news', false], ['law', true], ['tool-translation', false]].forEach(([id, open]) => {
+    const host = $(id);
+    fold(host, host.querySelector('.def-head'), { open, key: id });
   });
-  showTool((() => { try { return sessionStorage.getItem('tool'); } catch { return null; } })() || 'definition');
+  const errorsAside = document.querySelector('aside');
+  fold(errorsAside, errorsAside.querySelector('h2'), { key: 'errors' });
 
   const doubts = createSearch({
     section: $('doubts'), form: $('doubtsForm'), input: $('doubtsQuery'), button: $('doubtsBtn'), result: $('doubtsResult'),
@@ -849,8 +861,33 @@
   // mais resultados de fontes oficiais.
   // Mostra primeiro o excerto da pesquisa e, em seguida, substitui-o pelo texto integral obtido pelo proxy.
   const HEADING = /^(LIVRO|T[IÍ]TULO|CAP[IÍ]TULO|SEC[CÇ][AÃ]O|SUBSEC[CÇ][AÃ]O|Artigo\s+\d+[.º°\w-]*|Art\.\s*\d+)/i;
-  async function openLaw(r) {
-    const signal = openDialog({ title: r.title, label: `Abrir em ${r.source}`, url: r.url });
+  const CRP_URL = 'https://www.pgdlisboa.pt/leis/lei_mostra_articulado.php?nid=4&tabela=leis';
+
+  // Converte o texto arrumado pelo proxy (# título, ## cabeçalho, - item, | rótulo | valor) em elementos.
+  function legalNodes(paragraphs) {
+    const out = [];
+    let list = null;
+    for (const t of paragraphs) {
+      if (t.startsWith('- ')) {
+        if (!list) { list = h('ul', { class: 'doc-list' }); out.push(list); }
+        list.append(h('li', {}, t.slice(2)));
+        continue;
+      }
+      list = null;
+      if (t.startsWith('# ')) out.push(h('h4', { class: 'doc-title' }, t.slice(2)));
+      else if (t.startsWith('## ')) out.push(h('h4', {}, t.slice(3)));
+      else if (t.startsWith('| ')) {
+        const [label, ...rest] = t.slice(2).split(' | ');
+        out.push(h('p', { class: 'kv' }, h('strong', {}, label), rest.join(' | ')));
+      } else if (/^[a-z]\)\s/.test(t) || /^[ivx]+\)\s/.test(t)) out.push(h('p', { class: 'alinea' }, t));
+      else if (HEADING.test(t) && t.length < 80) out.push(h('h4', {}, t));
+      else out.push(h('p', {}, t));
+    }
+    return out;
+  }
+
+  async function openLaw(r, { params = {}, title = r.title, intro = [r.kind, r.source].join(' · ') } = {}) {
+    const signal = openDialog({ title, label: `Abrir em ${r.source}`, url: r.url });
     const draw = (d, loading) => {
       const full = d?.text?.split('\n\n').filter(Boolean) || [];
       const paragraphs = full.length ? full : [r.description || 'Sem texto disponível. Abre a fonte para ler o documento.'];
@@ -858,22 +895,23 @@
         : full.length ? (d.truncated ? 'Texto muito longo: mostrado até ao limite. Abre a fonte para o resto.' : 'Texto integral obtido da fonte oficial. Confirma sempre a versão em vigor.')
           : 'Esta fonte não permite mostrar o texto integral aqui (só funciona no próprio site). Mostramos o excerto da pesquisa; abre a fonte para ler tudo.';
       answerBody.replaceChildren(
-        h('p', { class: 'meta' }, [r.kind, r.source].join(' · ')),
-        h('div', { class: 'question legal-text' }, paragraphs.map((t) => {
-          if (!full.length) return h('p', {}, t);
-          if (t.startsWith('# ')) return h('h4', { class: 'doc-title' }, t.slice(2));
-          return HEADING.test(t) && t.length < 80 ? h('h4', {}, t) : h('p', {}, t);
-        })),
+        h('p', { class: 'meta' }, intro),
+        h('div', { class: 'question legal-text' }, full.length ? legalNodes(paragraphs) : paragraphs.map((t) => h('p', {}, t))),
         h('p', { class: 'meta' }, note),
       );
     };
     draw(null, true);
     try {
-      draw(await getJson('/texto', { url: r.url }, { signal, keep: (d) => Boolean(d.text) }), false);
+      draw(await getJson('/texto', { url: r.url, ...params }, { signal, keep: (d) => Boolean(d.text) }), false);
     } catch (err) {
       if (err.name !== 'AbortError') draw({}, false);
     }
   }
+
+  const openArticle = (c) => openLaw(
+    { url: CRP_URL, source: 'PGDL', kind: 'Constituição', description: c.text },
+    { params: { artigo: c.art }, title: `Constituição da República Portuguesa, art. ${c.art}.º`, intro: `Constituição · ${c.title}` },
+  );
 
   const lawList = (items, ordered = false) => h(ordered ? 'ol' : 'ul', {}, items.map((t) => h('li', {}, t)));
   const lawBlock = (title, ...content) => h('section', { class: 'law-block' }, h('h4', {}, title), ...content);
@@ -942,10 +980,22 @@
     return { card, sync };
   }
 
+  const REF_RANK = [/^CRP|Constitui/i, /Conven|CEDH|Carta|RGPD|Diretiva|Regulamento|Pacto/i, /^C[óo]digo|^CP[A-Z]*\b|^RGCO/i, /Lei Org|^Lei/i, /^Decreto-Lei/i];
+  const refRank = (s) => { const i = REF_RANK.findIndex((re) => re.test(s)); return i < 0 ? REF_RANK.length : i; };
+  const sortRefs = (refs) => [...refs].sort((a, b) => refRank(a) - refRank(b));
+
+  // Normas constitucionais: o topo da hierarquia, com o texto do artigo a um toque.
+  const crpBlock = (items) => items?.length ? h('section', { class: 'law-block crp' },
+    h('h4', {}, 'Constituição da República: o que ela diz'),
+    h('ul', { class: 'crp-list' }, items.map((c) => h('li', {},
+      h('strong', {}, `Art. ${c.art}.º — ${c.title}. `), c.text, ' ',
+      h('button', { type: 'button', class: 'chip', onclick: () => openArticle(c) }, 'Ler artigo completo'))))) : null;
+
   function lawTop(t, data, citation, scrollTo) {
     if (!t) {
       return [h('section', { class: 'law-hero' }, h('p', { class: 'eyebrow' }, 'O que sabemos'), h('h3', {}, `«${data.term}»`),
-        h('p', { class: 'law-note' }, 'Não identificámos uma área jurídica concreta para este termo. Vê as fontes oficiais abaixo ou experimenta um termo mais específico (por exemplo «difamação», «despedimento», «acesso a documentos» ou «Lei n.º 26/2016»).'))];
+        h('p', { class: 'law-note' }, 'Não identificámos uma área jurídica concreta para este termo. Vê as fontes oficiais abaixo ou experimenta um termo mais específico (por exemplo «difamação», «despedimento», «acesso a documentos» ou «Lei n.º 26/2016»).'),
+        crpBlock(data.interpretation?.constitution))];
     }
     const angles = ANGLES[t.id] || [];
     const first = t.deadlines?.[0];
@@ -955,6 +1005,7 @@
         citation ? h('p', { class: 'law-cite' }, `Interpretado como citação: ${citation.label}`) : null,
         h('p', { class: 'law-area' }, t.area),
         h('p', { class: 'law-note' }, t.note),
+        crpBlock(t.crp),
         t.rights?.length ? lawBlock('Direitos à cabeça', lawList(t.rights.slice(0, 3))) : null,
         first ? h('p', { class: 'law-alert' }, h('strong', {}, 'Atenção ao prazo: '), `${first.when} — ${first.what.toLowerCase()}`) : null,
         h('nav', { class: 'law-nav', 'aria-label': 'Ir para' }, [['law-angles', 'Perspetivas'], ['law-found', 'Fontes'], ['law-act', 'Agir'], ['law-models', 'Modelos']]
@@ -965,7 +1016,7 @@
           a.search?.length ? h('p', { class: 'chips' }, a.search.map(chipButton)) : null))) : null,
         !angles.length && t.arguments?.length ? lawBlock('Argumentos úteis', lawList(t.arguments)) : null,
         t.rights?.length > 3 ? h('details', { class: 'law-more' }, h('summary', {}, 'Todos os direitos desta área'), lawList(t.rights)) : null,
-        t.refs?.length ? lawBlock('Diplomas e artigos (toca para pesquisar)', h('p', { class: 'chips' }, t.refs.map(chipButton))) : null),
+        t.refs?.length ? lawBlock('Diplomas e artigos, da Constituição para baixo (toca para pesquisar)', h('p', { class: 'chips' }, sortRefs(t.refs).map(chipButton))) : null),
     ];
   }
 

@@ -122,7 +122,7 @@ export default {
       const target = url.searchParams.get('url') || '';
       if (target.length > 500) return json({ error: 'URL inválido' }, 400, headers);
       try {
-        const result = await fetchLawText(target, isLawHost);
+        const result = await fetchLawText(target, isLawHost, (url.searchParams.get('artigo') || '').slice(0, 6));
         const cache = result.text ? 'public, max-age=86400' : 'no-store';
         return json(result, 200, { ...headers, 'Cache-Control': cache });
       } catch {

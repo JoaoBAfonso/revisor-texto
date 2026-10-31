@@ -47,3 +47,9 @@ O texto traduzido é enviado ao DeepL. O limite é de 5000 caracteres por pedido
 
 - Desenvolvimento: `node proxy/dev-server.mjs` (http://localhost:8787); o `config.js` já aponta para aí.
 - Produção: publicar `proxy/` como Cloudflare Worker (`worker.js` + `priberam.js`), colocar o domínio do GitHub Pages em `ALLOWED_ORIGINS` no `worker.js` e o URL do Worker em `definitionApi` no `config.js`.
+
+## Painéis recolhíveis, texto arrumado e Constituição
+
+- Cada ferramenta (Definição, Dúvidas, Notícias, Direito, Tradução) e o painel de erros são painéis verticais que se expandem/recolhem; o estado fica guardado no navegador.
+- O proxy arruma o texto de fontes externas (DGSI, PGDL, notícias) e isola artigos da CRP (/texto?artigo=N).
+- A secção jurídica mostra primeiro os artigos da Constituição relevantes. O conhecimento está em proxy/guia.js e é validado por proxy/guia.test.mjs (node guia.test.mjs); é orientativo e deve ser revisto por um jurista.
