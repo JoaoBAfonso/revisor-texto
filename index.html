@@ -5,67 +5,67 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#f67844">
   <meta name="color-scheme" content="light">
-  <meta name="description" content="Revisor de texto independente: ortografia, acentuaÃ§Ã£o, definiÃ§Ãµes, traduÃ§Ã£o, dÃºvidas de lÃ­ngua, notÃ­cias e legislaÃ§Ã£o.">
-  <title>FumaÃ§a Â· Toolbox</title>
+  <meta name="description" content="Revisor de texto independente: ortografia, acentuação, definições, tradução, dúvidas de língua, notícias e legislação.">
+  <title>Fumaça · Toolbox</title>
   <link rel="stylesheet" href="style.css?v=27">
 </head>
 <body>
   <a class="skip" href="#text">Saltar para o editor</a>
   <header>
     <a class="brand" href="#/" aria-label="Revisor de texto">
-      <img class="logo" src="assets/fumaca-logo.png" alt="FumaÃ§a" width="591" height="160">
+      <img class="logo" src="assets/fumaca-logo.png" alt="Fumaça" width="591" height="160">
       <span class="product" id="product">Toolbox</span>
     </a>
     <div class="controls" id="revisorControls" hidden>
       <label>Idioma
         <select id="lang">
-          <option value="pt-PT">PortuguÃªs (Portugal)</option>
-          <option value="en">InglÃªs (US + UK)</option>
+          <option value="pt-PT">Português (Portugal)</option>
+          <option value="en">Inglês (US + UK)</option>
         </select>
       </label>
       <button id="undo" type="button" disabled title="Ctrl+Z">Desfazer</button>
     </div>
   </header>
-  <div class="strap" id="strap">Jornalismo e cidadania. Sem anÃºncios, sem rasto.</div>
+  <div class="strap" id="strap">Jornalismo e cidadania. Sem anúncios, sem rasto.</div>
 
   <main class="home" id="view-home" data-view="home" hidden>
     <h1 class="home-title">Ferramentas para jornalismo e cidadania</h1>
-    <p class="home-lead">Escolhe uma ferramenta. Tudo corre no teu browser ou atravÃ©s de um proxy simples, sem anÃºncios e sem rasto.</p>
+    <p class="home-lead">Escolhe uma ferramenta. Tudo corre no teu browser ou através de um proxy simples, sem anúncios e sem rasto.</p>
     <nav class="tool-grid" aria-label="Ferramentas">
       <a class="tool-card" href="#/revisor">
         <svg class="tool-icon" viewBox="0 0 48 48" aria-hidden="true"><path d="M8 38h32M12 30l16-16 6 6-16 16-8 2z" fill="none" stroke="currentColor" stroke-width="3" stroke-linejoin="round"/><path d="M25 17l6 6" stroke="currentColor" stroke-width="3"/></svg>
         <h2>Revisor de texto</h2>
-        <p>Ortografia e acentuaÃ§Ã£o em portuguÃªs e inglÃªs, definiÃ§Ãµes, dÃºvidas de lÃ­ngua (CiberdÃºvidas), traduÃ§Ã£o e ligaÃ§Ãµes no texto.</p>
+        <p>Ortografia e acentuação em português e inglês, definições, dúvidas de língua (Ciberdúvidas), tradução e ligações no texto.</p>
         <span class="tool-go">Abrir</span>
       </a>
       <a class="tool-card" href="#/noticias">
         <svg class="tool-icon" viewBox="0 0 48 48" aria-hidden="true"><rect x="7" y="9" width="34" height="30" fill="none" stroke="currentColor" stroke-width="3"/><path d="M13 17h14M13 24h22M13 31h22" stroke="currentColor" stroke-width="3"/><rect x="31" y="14" width="4" height="6" fill="currentColor"/></svg>
-        <h2>Arquivo de notÃ­cias</h2>
-        <p>VÃª como uma palavra ou expressÃ£o Ã© usada em notÃ­cias recentes de vÃ¡rios Ã³rgÃ£os de comunicaÃ§Ã£o, com texto completo e autor.</p>
+        <h2>Arquivo de notícias</h2>
+        <p>Vê como uma palavra ou expressão é usada em notícias recentes de vários órgãos de comunicação, com texto completo e autor.</p>
         <span class="tool-go">Abrir</span>
       </a>
       <a class="tool-card" href="#/direito">
         <svg class="tool-icon" viewBox="0 0 48 48" aria-hidden="true"><path d="M24 7v34M12 41h24M24 12H10M24 12h14" fill="none" stroke="currentColor" stroke-width="3"/><path d="M10 12L4 26h12zM38 12l-6 14h12z" fill="none" stroke="currentColor" stroke-width="3" stroke-linejoin="round"/></svg>
-        <h2>Direito e legislaÃ§Ã£o</h2>
-        <p>A lei portuguesa por ordem hierÃ¡rquica, da ConstituiÃ§Ã£o Ã s leis especiais: pergunta por um tema e recebe os artigos completos, os argumentos, os prazos e os modelos para agir.</p>
+        <h2>Direito e legislação</h2>
+        <p>A lei portuguesa por ordem hierárquica, da Constituição às leis especiais: pergunta por um tema e recebe os artigos completos, os argumentos, os prazos e os modelos para agir.</p>
         <span class="tool-go">Abrir</span>
       </a>
     </nav>
   </main>
   <main class="page" id="view-noticias" data-view="noticias" hidden>
-  <a class="back" href="#/">â† Todas as ferramentas</a>
+  <a class="back" href="#/">← Todas as ferramentas</a>
     <section class="doubts news" id="news" data-tool="news">
       <div class="def-head">
-        <h2>NotÃ­cias</h2>
+        <h2>Notícias</h2>
       </div>
       <form class="doubts-form" id="newsForm">
-        <input id="newsQuery" type="search" maxlength="80" placeholder="Palavra ou expressÃ£oâ€¦" aria-label="Palavra ou expressÃ£o a pesquisar em sites de notÃ­cias" autocomplete="off">
+        <input id="newsQuery" type="search" maxlength="80" placeholder="Palavra ou expressão…" aria-label="Palavra ou expressão a pesquisar em sites de notícias" autocomplete="off">
         <button id="newsBtn" type="submit" disabled>Pesquisar</button>
       </form>
       <details class="sources">
         <summary data-label="Sites"></summary>
-        <fieldset class="news-sites" id="newsSites" aria-label="Sites de notÃ­cias">
-        <label><input type="checkbox" value="publico" checked> PÃºblico</label>
+        <fieldset class="news-sites" id="newsSites" aria-label="Sites de notícias">
+        <label><input type="checkbox" value="publico" checked> Público</label>
         <label><input type="checkbox" value="expresso" checked> Expresso</label>
         <label><input type="checkbox" value="rtp" checked> RTP</label>
         <label><input type="checkbox" value="sic" checked> SIC</label>
@@ -77,49 +77,49 @@
         <label><input type="checkbox" value="jn" checked> JN</label>
         <label><input type="checkbox" value="eco" checked> ECO</label>
         <label><input type="checkbox" value="lusa" checked> Lusa</label>
-        <label><input type="checkbox" value="poligrafo" checked> PolÃ­grafo (verificaÃ§Ã£o)</label>
+        <label><input type="checkbox" value="poligrafo" checked> Polígrafo (verificação)</label>
       </fieldset>
       </details>
-      <div id="newsResult" aria-live="polite">VÃª como uma palavra ou expressÃ£o Ã© usada em notÃ­cias recentes (sÃ³ portuguÃªs).</div>
+      <div id="newsResult" aria-live="polite">Vê como uma palavra ou expressão é usada em notícias recentes (só português).</div>
     </section>
 
   </main>
 
   <main class="page" id="view-direito" data-view="direito" hidden>
-  <a class="back" href="#/">â† Todas as ferramentas</a>
-    <nav class="law-modes" aria-label="Direito e legislaÃ§Ã£o">
-      <a id="modeGuide" href="#/direito" aria-current="true">Guia <small>pergunta e orientaÃ§Ã£o</small></a>
-      <a id="modeLaw" href="#/direito/lei" aria-current="false">LegislaÃ§Ã£o <small>explorar por hierarquia</small></a>
+  <a class="back" href="#/">← Todas as ferramentas</a>
+    <nav class="law-modes" aria-label="Direito e legislação">
+      <a id="modeGuide" href="#/direito" aria-current="true">Guia <small>pergunta e orientação</small></a>
+      <a id="modeLaw" href="#/direito/lei" aria-current="false">Legislação <small>explorar por hierarquia</small></a>
     </nav>
     <section class="brain-shell" id="brain-shell" hidden>
-      <div class="def-head"><h2>LegislaÃ§Ã£o por hierarquia</h2></div>
+      <div class="def-head"><h2>Legislação por hierarquia</h2></div>
       <div id="brain" aria-live="polite"></div>
     </section>
     <section class="doubts news law" id="law" data-tool="law">
       <div class="def-head">
-        <h2>Direito e legislaÃ§Ã£o</h2>
+        <h2>Direito e legislação</h2>
       </div>
       <form class="doubts-form" id="lawForm">
-        <input id="lawQuery" type="search" maxlength="80" placeholder="Palavra, expressÃ£o ou diploma (ex.: Lei n.Âº 2/99)â€¦" aria-label="Palavra, expressÃ£o ou diploma a pesquisar em fontes jurÃ­dicas" autocomplete="off">
+        <input id="lawQuery" type="search" maxlength="80" placeholder="Palavra, expressão ou diploma (ex.: Lei n.º 2/99)…" aria-label="Palavra, expressão ou diploma a pesquisar em fontes jurídicas" autocomplete="off">
         <button id="lawBtn" type="submit" disabled>Pesquisar</button>
       </form>
       <details class="sources">
         <summary data-label="Fontes"></summary>
-        <fieldset class="news-sites" id="lawSources" aria-label="Fontes jurÃ­dicas">
-        <label><input type="checkbox" value="dre" checked> DiÃ¡rio da RepÃºblica</label>
+        <fieldset class="news-sites" id="lawSources" aria-label="Fontes jurídicas">
+        <label><input type="checkbox" value="dre" checked> Diário da República</label>
         <label><input type="checkbox" value="pgdl" checked> PGDL</label>
         <label><input type="checkbox" value="dgsi" checked> Tribunais (DGSI)</label>
         <label><input type="checkbox" value="tc" checked> Trib. Constitucional</label>
         <label><input type="checkbox" value="erc" checked> ERC</label>
         <label><input type="checkbox" value="cnpd" checked> CNPD</label>
         <label><input type="checkbox" value="cada" checked> CADA</label>
-        <label><input type="checkbox" value="provedor" checked> Provedor de JustiÃ§a</label>
-        <label><input type="checkbox" value="mp" checked> MinistÃ©rio PÃºblico</label>
+        <label><input type="checkbox" value="provedor" checked> Provedor de Justiça</label>
+        <label><input type="checkbox" value="mp" checked> Ministério Público</label>
         <label><input type="checkbox" value="eurlex" checked> Direito da UE</label>
         <label><input type="checkbox" value="tedh" checked> TEDH</label>
       </fieldset>
       </details>
-      <div id="lawResult" aria-live="polite">Descobre que leis, acÃ³rdÃ£os e deliberaÃ§Ãµes podem ser relevantes para uma palavra ou expressÃ£o (sÃ³ portuguÃªs).</div>
+      <div id="lawResult" aria-live="polite">Descobre que leis, acórdãos e deliberações podem ser relevantes para uma palavra ou expressão (só português).</div>
     </section>
 
   </main>
@@ -128,29 +128,29 @@
     <section class="editor">
       <div class="box">
         <div id="backdrop" aria-hidden="true"></div>
-        <textarea id="text" spellcheck="false" placeholder="Escreve ou cola aqui o teu textoâ€¦"></textarea>
+        <textarea id="text" spellcheck="false" placeholder="Escreve ou cola aqui o teu texto…"></textarea>
       </div>
       <div class="editor-bar">
-        <p id="status" role="status">A carregar dicionÃ¡rioâ€¦</p>
+        <p id="status" role="status">A carregar dicionário…</p>
         <div class="editor-actions">
-          <button id="linkBtn" type="button" disabled title="Seleciona texto e liga-o a um endereÃ§o (Ctrl+K)">LigaÃ§Ã£o</button>
-          <button id="copyRich" type="button" title="Copia o texto com as ligaÃ§Ãµes, para colar noutras aplicaÃ§Ãµes">Copiar com ligaÃ§Ãµes</button>
+          <button id="linkBtn" type="button" disabled title="Seleciona texto e liga-o a um endereço (Ctrl+K)">Ligação</button>
+          <button id="copyRich" type="button" title="Copia o texto com as ligações, para colar noutras aplicações">Copiar com ligações</button>
         </div>
       </div>
       <div id="linkBar" hidden>
-        <span class="link-label">LigaÃ§Ã£o</span>
+        <span class="link-label">Ligação</span>
         <span id="linkShown"></span>
-        <a id="linkOpen" target="_blank" rel="noopener noreferrer" title="Ou Ctrl+clique na ligaÃ§Ã£o">Abrir</a>
+        <a id="linkOpen" target="_blank" rel="noopener noreferrer" title="Ou Ctrl+clique na ligação">Abrir</a>
         <button id="linkEdit" type="button">Editar</button>
         <button id="linkRemove" type="button">Remover</button>
       </div>
 
       <dialog id="linkDialog" class="small-dialog" aria-labelledby="linkTitle">
         <form id="linkForm">
-          <h2 id="linkTitle">LigaÃ§Ã£o</h2>
-          <label for="linkUrl">EndereÃ§o</label>
-          <input id="linkUrl" type="text" placeholder="https://â€¦" autocomplete="off" spellcheck="false">
-          <p id="linkError" role="alert" hidden>EndereÃ§o invÃ¡lido. Usa um endereÃ§o http(s) ou de e-mail.</p>
+          <h2 id="linkTitle">Ligação</h2>
+          <label for="linkUrl">Endereço</label>
+          <input id="linkUrl" type="text" placeholder="https://…" autocomplete="off" spellcheck="false">
+          <p id="linkError" role="alert" hidden>Endereço inválido. Usa um endereço http(s) ou de e-mail.</p>
           <div class="dialog-actions">
             <button type="button" id="linkCancel">Cancelar</button>
             <button type="submit">Guardar</button>
@@ -163,26 +163,26 @@
 
       <section class="definition" id="tool-definition" data-tool="definition">
         <div class="def-head">
-          <h2>DefiniÃ§Ã£o</h2>
-          <button id="define" type="button" disabled>Ver definiÃ§Ã£o da palavra selecionada</button>
+          <h2>Definição</h2>
+          <button id="define" type="button" disabled>Ver definição da palavra selecionada</button>
         </div>
-        <div id="definition" aria-live="polite">Seleciona uma palavra no texto para ver o significado (portuguÃªs: Priberam; inglÃªs: Wiktionary).</div>
+        <div id="definition" aria-live="polite">Seleciona uma palavra no texto para ver o significado (português: Priberam; inglês: Wiktionary).</div>
       </section>
 
       <section class="doubts" id="doubts" data-tool="doubts">
         <div class="def-head">
-          <h2>DÃºvidas (CiberdÃºvidas)</h2>
+          <h2>Dúvidas (Ciberdúvidas)</h2>
         </div>
         <form class="doubts-form" id="doubtsForm">
-          <input id="doubtsQuery" type="search" maxlength="80" placeholder="Palavra ou expressÃ£oâ€¦" aria-label="Palavra ou expressÃ£o a pesquisar no CiberdÃºvidas" autocomplete="off">
+          <input id="doubtsQuery" type="search" maxlength="80" placeholder="Palavra ou expressão…" aria-label="Palavra ou expressão a pesquisar no Ciberdúvidas" autocomplete="off">
           <button id="doubtsBtn" type="submit" disabled>Pesquisar</button>
         </form>
-        <div id="doubtsResult" aria-live="polite">Seleciona uma palavra ou expressÃ£o no texto, ou escreve-a acima, para ver dÃºvidas semelhantes jÃ¡ respondidas (sÃ³ portuguÃªs).</div>
+        <div id="doubtsResult" aria-live="polite">Seleciona uma palavra ou expressão no texto, ou escreve-a acima, para ver dúvidas semelhantes já respondidas (só português).</div>
       </section>
 
       <section class="translation" id="tool-translation" data-tool="translation">
         <div class="def-head">
-          <h2>TraduÃ§Ã£o (DeepL)</h2>
+          <h2>Tradução (DeepL)</h2>
           <div class="tr-controls">
             <label>Para
               <select id="trTarget"></select>
@@ -190,7 +190,7 @@
             <button id="translate" type="button" disabled>Traduzir</button>
           </div>
         </div>
-        <div id="trResult" aria-live="polite">Traduz a seleÃ§Ã£o, ou o texto todo se nÃ£o houver seleÃ§Ã£o.</div>
+        <div id="trResult" aria-live="polite">Traduz a seleção, ou o texto todo se não houver seleção.</div>
         <div class="actions" id="trActions" hidden>
           <button id="trCopy" type="button">Copiar</button>
           <button id="trApply" type="button">Substituir no editor</button>
@@ -198,12 +198,12 @@
       </section>
     </div>
 
-    <aside aria-label="PossÃ­veis erros">
-      <h2>PossÃ­veis erros <span id="count"></span></h2>
+    <aside aria-label="Possíveis erros">
+      <h2>Possíveis erros <span id="count"></span></h2>
       <p class="aside-hint">Seleciona um erro para o localizar no texto.</p>
       <ul id="issues"></ul>
       <details>
-        <summary>DicionÃ¡rio pessoal (<span id="personalCount">0</span>)</summary>
+        <summary>Dicionário pessoal (<span id="personalCount">0</span>)</summary>
         <ul id="personal"></ul>
       </details>
     </aside>
@@ -211,25 +211,25 @@
 
   <dialog id="answerDialog" aria-labelledby="answerTitle">
     <div class="dialog-head">
-      <h2 id="answerTitle">DÃºvida</h2>
+      <h2 id="answerTitle">Dúvida</h2>
       <button type="button" id="answerClose" aria-label="Fechar">Fechar</button>
     </div>
     <div id="answerBody" class="dialog-body"></div>
     <p class="dialog-foot">
-      <a id="answerSource" target="_blank" rel="noopener noreferrer">Ver no CiberdÃºvidas</a>
+      <a id="answerSource" target="_blank" rel="noopener noreferrer">Ver no Ciberdúvidas</a>
       <button type="button" id="answerInsert" hidden></button>
     </p>
   </dialog>
 
   <footer>
-    O texto Ã© verificado no teu browser e nunca sai do teu computador. A palavra que escolheres definir Ã© enviada ao Priberam (atravÃ©s do proxy) ou ao Wiktionary. O termo que pesquisares no CiberdÃºvidas, em notÃ­cias ou em fontes jurÃ­dicas Ã© enviado a esses sites ou a motores de pesquisa (atravÃ©s do proxy; nas notÃ­cias, via Bing NotÃ­cias). O texto que mandares traduzir Ã© enviado ao DeepL (atravÃ©s do proxy).
-    DicionÃ¡rios: LibreOffice/wooorm (LGPL-3.0 ou MPL-2.0).
+    O texto é verificado no teu browser e nunca sai do teu computador. A palavra que escolheres definir é enviada ao Priberam (através do proxy) ou ao Wiktionary. O termo que pesquisares no Ciberdúvidas, em notícias ou em fontes jurídicas é enviado a esses sites ou a motores de pesquisa (através do proxy; nas notícias, via Bing Notícias). O texto que mandares traduzir é enviado ao DeepL (através do proxy).
+    Dicionários: LibreOffice/wooorm (LGPL-3.0 ou MPL-2.0).
   </footer>
 
   <script src="config.js"></script>
   <script src="vendor/hunspell.js"></script>
   <script src="modelos.js?v=1"></script>
-  <script src="app.js?v=26"></script>
+  <script src="app.js?v=27"></script>
   <script type="module" src="lei.js?v=3"></script>
 </body>
 </html>
