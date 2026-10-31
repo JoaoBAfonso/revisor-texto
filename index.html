@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Revisor de Texto</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header>
+    <h1>Revisor de Texto</h1>
+    <div class="controls">
+      <label>Idioma
+        <select id="lang">
+          <option value="pt-PT">Português (Portugal)</option>
+          <option value="en">Inglês (US + UK)</option>
+        </select>
+      </label>
+      <button id="undo" type="button" disabled>Desfazer última correção</button>
+    </div>
+  </header>
+
+  <main>
+    <section class="editor">
+      <div class="box">
+        <div id="backdrop" aria-hidden="true"></div>
+        <textarea id="text" spellcheck="false" placeholder="Escreve ou cola aqui o teu texto…"></textarea>
+      </div>
+      <p id="status" role="status">A carregar dicionário…</p>
+
+      <section class="definition">
+        <div class="def-head">
+          <h2>Definição</h2>
+          <button id="define" type="button" disabled>Ver definição da palavra selecionada</button>
+        </div>
+        <div id="definition" aria-live="polite">Seleciona uma palavra no texto para ver o significado (português: Priberam; inglês: Wiktionary).</div>
+      </section>
+
+      <section class="translation">
+        <div class="def-head">
+          <h2>Tradução (DeepL)</h2>
+          <div class="tr-controls">
+            <label>Para
+              <select id="trTarget"></select>
+            </label>
+            <button id="translate" type="button" disabled>Traduzir</button>
+          </div>
+        </div>
+        <div id="trResult" aria-live="polite">Traduz a seleção, ou o texto todo se não houver seleção.</div>
+        <div class="actions" id="trActions" hidden>
+          <button id="trCopy" type="button">Copiar</button>
+          <button id="trApply" type="button">Substituir no editor</button>
+        </div>
+      </section>
+    </section>
+
+    <aside>
+      <h2>Possíveis erros <span id="count"></span></h2>
+      <ul id="issues"></ul>
+      <details>
+        <summary>Dicionário pessoal (<span id="personalCount">0</span>)</summary>
+        <ul id="personal"></ul>
+      </details>
+    </aside>
+  </main>
+
+  <footer>
+    O texto é verificado no teu browser e nunca sai do teu computador. A palavra que escolheres definir é enviada ao Priberam (através do proxy) ou ao Wiktionary. O texto que mandares traduzir é enviado ao DeepL (através do proxy).
+    Dicionários: LibreOffice/wooorm (LGPL-3.0 ou MPL-2.0).
+  </footer>
+
+  <script src="config.js"></script>
+  <script src="vendor/hunspell.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

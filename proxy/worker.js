@@ -1,0 +1,79 @@
+// Cloudflare Worker:
+//   GET  /?word=casa   -> JSON com a definição obtida no Priberam.
+//   POST /translate    -> tradução via DeepL (a chave DEEPL_API_KEY fica só aqui, como segredo).
+import { lookupPriberam } from './priberam.js';
+
+// Origens autorizadas a usar o proxy. Substituir pelo endereço do GitHub Pages.
+const ALLOWED_ORIGINS = ['https://joaobafonso.github.io', 'http://localhost:8765', 'http://localhost:8000'];
+const CACHE_SECONDS = 86400;
+const MAX_TRANSLATE_CHARS = 5000;
+const DEEPL_SOURCE = { 'pt-PT': 'PT', en: 'EN' };
+const DEEPL_TARGET = { 'pt-PT': 'PT-PT', 'en-GB': 'EN-GB', 'en-US': 'EN-US' };
+
+function corsHeaders(origin) {
+  return {
+    'Access-Control-Allow-Origin': ALLOWED_ORIGINS.includes(origin) ? origin : ALLOWED_ORIGINS[0],
+    'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type',
+    'Vary': 'Origin',
+  };
+}
+
+const json = (body, status, headers) => new Response(JSON.stringify(body), { status, headers });
+
+async function translate(request, env, headers) {
+  if (!env?.DEEPL_API_KEY) return json({ error: 'Tradução não configurada (falta a chave DeepL no servidor).' }, 503, headers);
+
+  let body;
+  try { body = await request.json(); } catch { return json({ error: 'Pedido inválido' }, 400, headers); }
+  const { text, source, target } = body || {};
+  if (typeof text !== 'string' || !text.trim() || text.length > MAX_TRANSLATE_CHARS) {
+    return json({ error: `Texto inválido (máximo ${MAX_TRANSLATE_CHARS} caracteres).` }, 400, headers);
+  }
+  if (!DEEPL_SOURCE[source] || !DEEPL_TARGET[target]) return json({ error: 'Idioma inválido' }, 400, headers);
+
+  const key = env.DEEPL_API_KEY;
+  const host = key.endsWith(':fx') ? 'api-free.deepl.com' : 'api.deepl.com';
+  let res;
+  try {
+    res = await fetch(`https://${host}/v2/translate`, {
+      method: 'POST',
+      headers: { Authorization: `DeepL-Auth-Key ${key}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text: [text], source_lang: DEEPL_SOURCE[source], target_lang: DEEPL_TARGET[target] }),
+    });
+  } catch {
+    return json({ error: 'Não foi possível contactar o DeepL.' }, 502, headers);
+  }
+  if (res.status === 456) return json({ error: 'Quota de tradução do DeepL esgotada.' }, 429, headers);
+  if (res.status === 403) return json({ error: 'Chave DeepL inválida.' }, 502, headers);
+  if (!res.ok) return json({ error: `O DeepL respondeu com o erro ${res.status}.` }, 502, headers);
+  const data = await res.json();
+  return json({ text: data.translations?.[0]?.text ?? '' }, 200, headers);
+}
+
+export default {
+  async fetch(request, env) {
+    const origin = request.headers.get('Origin') || '';
+    const headers = { ...corsHeaders(origin), 'Content-Type': 'application/json; charset=utf-8' };
+    if (request.method === 'OPTIONS') return new Response(null, { headers });
+    if (origin && !ALLOWED_ORIGINS.includes(origin)) return json({ error: 'Origem não autorizada' }, 403, headers);
+
+    const url = new URL(request.url);
+    if (url.pathname === '/translate') {
+      if (request.method !== 'POST') return json({ error: 'Método não permitido' }, 405, headers);
+      return translate(request, env, headers);
+    }
+
+    const word = (url.searchParams.get('word') || '').trim();
+    if (!word || word.length > 60 || !/^[\p{L}\p{M}'’-]+$/u.test(word)) {
+      return json({ error: 'Palavra inválida' }, 400, headers);
+    }
+
+    try {
+      const result = await lookupPriberam(word.toLowerCase());
+      return json(result, 200, { ...headers, 'Cache-Control': `public, max-age=${CACHE_SECONDS}` });
+    } catch (e) {
+      return json({ error: 'Não foi possível consultar o Priberam' }, 502, headers);
+    }
+  },
+};
