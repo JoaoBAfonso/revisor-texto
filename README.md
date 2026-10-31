@@ -56,4 +56,12 @@ O texto traduzido é enviado ao DeepL. O limite é de 5000 caracteres por pedido
 
 ## Toolbox
 
-O site é agora uma toolbox com uma página inicial e uma vista por ferramenta (routing por hash): #/revisor, #/noticias e #/direito.
+O site é agora uma toolbox com uma página inicial e uma vista por ferramenta (routing por hash): #/revisor, #/noticias, #/direito e #/lei.
+
+## Cérebro jurídico (#/lei)
+
+Corpus curado de 56 diplomas (Constituição, códigos, leis de valor reforçado, leis e decretos-leis, regimes sectoriais) em data/lei, gerado a partir do texto consolidado do PGDL. Não é "toda a legislação": o DRE e o EUR-Lex só servem texto com JavaScript. A lista e a hierarquia estão em proxy/corpus/catalog.mjs.
+
+- Regenerar: cd proxy; node corpus/build.mjs (opções: --force, --only id,id, --index). Escreve data/lei/<id>.json, meta.json, index.json (índice invertido), refs.json (citações) e heads.json (epígrafes).
+- Cliente: lei.js pesquisa por tokens (os mesmos de proxy/corpus/tokens.mjs), agrupa por grau hierárquico, abre artigos completos e segue remissões ("remete para" / "citado por"). Aceita atalhos como "artigo 37 CRP".
+- Orientativo: o texto pode estar desatualizado. Confirma no Diário da República e consulta um jurista.

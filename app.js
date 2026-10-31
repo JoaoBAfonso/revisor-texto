@@ -1009,7 +1009,8 @@
         t.rights?.length ? lawBlock('Direitos à cabeça', lawList(t.rights.slice(0, 3))) : null,
         first ? h('p', { class: 'law-alert' }, h('strong', {}, 'Atenção ao prazo: '), `${first.when} — ${first.what.toLowerCase()}`) : null,
         h('nav', { class: 'law-nav', 'aria-label': 'Ir para' }, [['law-angles', 'Perspetivas'], ['law-found', 'Fontes'], ['law-act', 'Agir'], ['law-models', 'Modelos']]
-          .map(([cls, label]) => h('button', { type: 'button', class: 'chip', onclick: () => scrollTo(cls) }, label)))),
+          .map(([cls, label]) => h('button', { type: 'button', class: 'chip', onclick: () => scrollTo(cls) }, label)),
+          h('a', { class: 'chip', href: `#/lei/busca/${encodeURIComponent(data.term)}` }, 'Na lei, artigo a artigo →'))),
       lawSection('law-angles', 'Perspetivas e ângulos', 'Cada ângulo abre uma linha de pesquisa: toca nas sugestões para explorar.',
         angles.length ? h('div', { class: 'angles' }, angles.map((a) => h('article', { class: 'angle' },
           h('h4', {}, a.title), h('p', {}, a.text),
@@ -1346,6 +1347,7 @@
     revisor: { title: 'Revisor de texto · Fumaça', product: 'Revisor', strap: 'Verificação ortográfica independente. Sem anúncios, sem rasto.' },
     noticias: { title: 'Arquivo de notícias · Fumaça', product: 'Notícias', strap: 'Como as palavras são usadas nas notícias.' },
     direito: { title: 'Direito e legislação · Fumaça', product: 'Direito', strap: 'Informação jurídica de serviço público. Não substitui um advogado.' },
+    lei: { title: 'Cérebro jurídico · Fumaça', product: 'Legislação', strap: 'A lei portuguesa por hierarquia, artigo a artigo.' },
   };
   function route() {
     const name = location.hash.replace(/^#\/?/, '').split(/[/?]/)[0];

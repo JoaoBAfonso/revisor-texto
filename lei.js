@@ -1,0 +1,315 @@
+// Cérebro jurídico: navega e pesquisa o corpus de legislação (data/lei) no browser, sem servidor.
+import { tokens } from './proxy/corpus/tokens.mjs';
+
+const root = document.getElementById('brain');
+const DATA = 'data/lei';
+const REV = '1';
+
+const h = (tag, props, ...kids) => {
+  const el = document.createElement(tag);
+  for (const [k, v] of Object.entries(props || {})) {
+    if (v == null || v === false) continue;
+    if (k === 'class') el.className = v;
+    else if (k.startsWith('on')) el.addEventListener(k.slice(2), v);
+    else el.setAttribute(k, v === true ? '' : v);
+  }
+  for (const kid of kids.flat(Infinity)) if (kid != null && kid !== false) el.append(kid);
+  return el;
+};
+
+const cache = new Map();
+const load = (name) => {
+  if (!cache.has(name)) {
+    cache.set(name, fetch(`${DATA}/${name}.json?v=${REV}`).then((r) => {
+      if (!r.ok) throw new Error(`Não foi possível carregar ${name}.`);
+      return r.json();
+    }).catch((e) => { cache.delete(name); throw e; }));
+  }
+  return cache.get(name);
+};
+
+const undelta = (list) => { let a = 0; return list.map((d) => (a += d)); };
+const hashFor = (...parts) => `#/lei${parts.length ? `/${parts.map(encodeURIComponent).join('/')}` : ''}`;
+const art = (id, k) => hashFor(id, k);
+
+// Princípios de raciocínio que aparecem em qualquer argumentação (fontes: CRP e Código Civil).
+const METHOD = [
+  ['Lei superior', 'Uma norma não pode contrariar outra de grau superior (CRP, art. 3.º, n.º 3, e art. 277.º). O direito da UE e as convenções prevalecem sobre a lei ordinária (CRP, art. 8.º).'],
+  ['Lei especial', 'A lei geral não revoga a lei especial, salvo intenção inequívoca do legislador (Código Civil, art. 7.º, n.º 3).'],
+  ['Lei posterior', 'A lei nova revoga a anterior que a contrarie (Código Civil, art. 7.º). Confirma sempre se a versão lida está em vigor.'],
+  ['Interpretação', 'Parte-se da letra, mas procura-se o pensamento legislativo e presume-se um resultado razoável (Código Civil, art. 9.º).'],
+  ['Procedimento', 'Identifica a entidade competente, o prazo e a forma do pedido. Muitos direitos perdem-se por prazos curtos ou por via errada.'],
+];
+
+let meta;
+let index;
+let refs;
+let heads;
+const ready = async () => {
+  [meta, index, refs, heads] = await Promise.all([load('meta'), load('index'), load('refs'), load('heads')]);
+  meta.byId = Object.fromEntries(meta.docs.map((d) => [d.id, d]));
+  meta.byShort = Object.fromEntries(meta.docs.map((d) => [d.short.toLowerCase(), d]));
+};
+const docOf = (gid) => {
+  let lo = 0;
+  let hi = meta.docs.length - 1;
+  while (lo < hi) {
+    const mid = (lo + hi + 1) >> 1;
+    if (meta.docs[mid].off <= gid) lo = mid; else hi = mid - 1;
+  }
+  const d = meta.docs[lo];
+  return { d, i: gid - d.off };
+};
+
+// ── Pesquisa ────────────────────────────────────────────────────────────────────────────────────
+function search(q) {
+  const terms = [...new Set(tokens(q))];
+  const score = new Map();
+  for (const t of terms) {
+    for (const [key, weight] of [['b', 1], ['h', 4]]) {
+      const raw = index[key][t];
+      if (!raw) continue;
+      const idf = Math.log(index.n / (raw.length + 1)) + 1;
+      for (const g of undelta(raw)) {
+        const s = score.get(g) || { n: new Set(), v: 0 };
+        s.n.add(t);
+        s.v += idf * weight;
+        score.set(g, s);
+      }
+    }
+  }
+  const best = Math.max(0, ...[...score.values()].map((s) => s.n.size));
+  return [...score]
+    .filter(([, s]) => s.n.size >= Math.max(1, best - (best > 2 ? 1 : 0)))
+    .sort((a, b) => b[1].n.size - a[1].n.size || b[1].v - a[1].v)
+    .slice(0, 120)
+    .map(([g, s]) => ({ g, ...docOf(g), v: s.v }));
+}
+
+function diplomasFor(q) {
+  const terms = new Set(tokens(q));
+  if (!terms.size) return [];
+  return meta.docs.filter((d) => {
+    const own = new Set(tokens(`${d.name} ${d.short} ${d.title}`));
+    return [...terms].every((t) => own.has(t));
+  });
+}
+
+// "artigo 65 crp", "65.º CRP", "art. 483 cc"
+function direct(q) {
+  const m = /^(?:art(?:igo)?\.?\s*)?(\d+(?:-[A-Z])?)\s*\.?\s*º?\s*(?:n\.?º?\s*\d+\s*)?(?:d[oae]s?\s+)?([a-zà-ú]+)$/i.exec(q.trim());
+  if (!m) return null;
+  const d = meta.byShort[m[2].toLowerCase()] || meta.byId[m[2].toLowerCase()];
+  return d ? { d, k: m[1] } : null;
+}
+
+// ── Peças de interface ─────────────────────────────────────────────────────────────────────────
+const rankName = (r) => meta.ranks.find((x) => x.rank === r)?.name || '';
+const badge = (d) => h('span', { class: 'brain-rank', 'data-rank': d.rank }, `Grau ${d.rank}`);
+
+function articleText(a) {
+  return h('div', { class: 'brain-text' }, a.x.split(/\n+/).map((line) => {
+    const item = /^([a-z]\)|\d+[.)º]|[ivx]+\))\s/i.test(line);
+    return h('p', { class: item ? 'item' : '' }, line);
+  }));
+}
+
+function searchBox(value = '') {
+  const input = h('input', { type: 'search', maxlength: '120', value, placeholder: 'Tema, palavra ou artigo (ex.: arrendamento, artigo 65 CRP)…', 'aria-label': 'Pesquisar na legislação', autocomplete: 'off' });
+  const go = (e) => {
+    e.preventDefault();
+    const q = input.value.trim();
+    location.hash = q ? hashFor('busca', q) : hashFor();
+  };
+  return h('form', { class: 'doubts-form brain-search', onsubmit: go }, input, h('button', { type: 'submit' }, 'Pesquisar'));
+}
+
+function loading(text = 'A carregar a legislação…') { return h('p', { class: 'brain-empty', role: 'status' }, text); }
+
+function method() {
+  return h('section', { class: 'brain-block' },
+    h('h3', null, 'Como raciocina um jurista'),
+    h('ol', { class: 'brain-method' }, METHOD.map(([t, d]) => h('li', null, h('strong', null, t), ' ', d))));
+}
+
+function disclaimer() {
+  return h('p', { class: 'brain-note' }, 'Texto consolidado obtido do PGDL e guardado neste site. Pode estar desatualizado e não substitui o Diário da República nem um advogado. Confirma sempre a versão em vigor.');
+}
+
+// ── Vistas ──────────────────────────────────────────────────────────────────────────────────────
+function viewHome() {
+  const byRank = meta.ranks.map((r) => ({ ...r, docs: meta.docs.filter((d) => d.rank === r.rank) })).filter((r) => r.docs.length);
+  return [
+    h('p', { class: 'brain-lead' }, `${meta.total.toLocaleString('pt-PT')} artigos de ${meta.docs.length} diplomas, ordenados pela hierarquia das normas. Pesquisa um tema e percorre a lei, da Constituição às leis especiais.`),
+    searchBox(),
+    method(),
+    h('section', { class: 'brain-block' },
+      h('h3', null, 'A hierarquia das normas'),
+      byRank.map((r) => h('div', { class: 'brain-tier', 'data-rank': r.rank },
+        h('h4', null, h('span', null, `Grau ${r.rank}`), ' ', r.name),
+        h('p', { class: 'brain-tier-note' }, r.note),
+        h('ul', { class: 'brain-docs' }, r.docs.map((d) => h('li', null,
+          h('a', { href: hashFor(d.id) }, d.name), h('span', null, `${d.n} artigos`))))))),
+    disclaimer(),
+  ];
+}
+
+function viewSearch(q) {
+  const hit = direct(q);
+  if (hit) { location.replace(art(hit.d.id, hit.k)); return []; }
+  const results = search(q);
+  const docs = diplomasFor(q);
+  const groups = meta.ranks.map((r) => ({ ...r, items: results.filter((x) => x.d.rank === r.rank) })).filter((g) => g.items.length);
+  const out = [searchBox(q)];
+  if (docs.length) {
+    out.push(h('section', { class: 'brain-block' }, h('h3', null, 'Diplomas'),
+      h('ul', { class: 'brain-docs' }, docs.map((d) => h('li', null, h('a', { href: hashFor(d.id) }, d.name), h('span', null, `Grau ${d.rank} · ${d.n} artigos`))))));
+  }
+  if (!results.length && !docs.length) {
+    out.push(h('p', { class: 'brain-empty' }, 'Sem artigos para esta pesquisa. Experimenta uma palavra mais geral (ex.: “habitação”, “despedimento”, “privacidade”).'));
+    return out;
+  }
+  if (groups.length) {
+    out.push(h('p', { class: 'brain-lead' }, `${results.length} artigos relevantes em ${new Set(results.map((x) => x.d.id)).size} diplomas, por ordem hierárquica.`));
+    out.push(h('div', { class: 'brain-ladder' }, groups.map((g) => h('span', { 'data-rank': g.rank }, `${g.name} · ${g.items.length}`))));
+    for (const g of groups) out.push(group(g));
+    out.push(method());
+  }
+  out.push(disclaimer());
+  return out;
+}
+
+function group(g) {
+  const shown = 6;
+  const list = h('ul', { class: 'brain-hits' });
+  const row = (x) => h('li', { class: 'brain-hit' }, hitCard(x));
+  g.items.forEach((x, i) => { const li = row(x); if (i >= shown) li.hidden = true; list.append(li); });
+  const more = g.items.length > shown ? h('button', {
+    type: 'button', class: 'brain-more',
+    onclick: (e) => { for (const li of list.querySelectorAll('li[hidden]')) li.hidden = false; e.target.remove(); },
+  }, `Mostrar mais ${g.items.length - shown}`) : null;
+  return h('section', { class: 'brain-block brain-group', 'data-rank': g.rank },
+    h('h3', null, h('span', null, `Grau ${g.rank}`), ' ', g.name),
+    h('p', { class: 'brain-tier-note' }, g.note),
+    list, more);
+}
+
+function hitCard({ g, d, i }) {
+  const [, n, t] = heads[g];
+  const holder = h('div', { class: 'brain-inline' });
+  const det = h('details', { class: 'brain-hit-body' },
+    h('summary', null, h('span', { class: 'brain-ref' }, `${d.short}, art. `), h('span', { class: 'brain-art' }, n), ' ', h('span', { class: 'brain-title' }, t || '')),
+    holder);
+  let filled = false;
+  det.addEventListener('toggle', async () => {
+    if (!det.open || filled) return;
+    filled = true;
+    holder.append(loading('A abrir o artigo…'));
+    try {
+      const doc = await load(d.id);
+      const a = doc.arts[i];
+      holder.replaceChildren(articleText(a), h('a', { class: 'brain-open', href: art(d.id, a.k) }, 'Abrir no contexto do diploma →'));
+    } catch (e) { holder.replaceChildren(h('p', { class: 'brain-empty' }, e.message)); filled = false; }
+  });
+  return det;
+}
+
+function viewDoc(id, k) {
+  const d = meta.byId[id];
+  if (!d) return [h('p', { class: 'brain-empty' }, 'Diploma não encontrado.'), h('a', { href: hashFor() }, '← Legislação')];
+  const wrap = h('div', { class: 'brain-doc' }, loading('A abrir o diploma…'));
+  load(id).then((doc) => {
+    const idx = k ? doc.arts.findIndex((a) => a.k === k) : -1;
+    wrap.replaceChildren(...(idx >= 0 ? viewArticle(d, doc, idx) : viewToc(d, doc, k)).filter(Boolean));
+    window.scrollTo(0, 0);
+  }).catch((e) => wrap.replaceChildren(h('p', { class: 'brain-empty' }, e.message)));
+  return [searchBox(), wrap];
+}
+
+function docHeader(d) {
+  return h('header', { class: 'brain-dochead', 'data-rank': d.rank },
+    badge(d),
+    h('h3', null, d.name),
+    h('p', { class: 'brain-tier-note' }, `${rankName(d.rank)} · ${d.title}`),
+    h('a', { class: 'brain-open', href: d.url, target: '_blank', rel: 'noopener noreferrer' }, 'Fonte: PGDL ↗'));
+}
+
+function viewToc(d, doc, missing) {
+  const kids = new Map();
+  doc.secs.forEach((s, i) => { const p = s.u; (kids.get(p) || kids.set(p, []).get(p)).push(i); });
+  const arts = new Map();
+  doc.arts.forEach((a) => { (arts.get(a.s) || arts.set(a.s, []).get(a.s)).push(a); });
+  const artList = (list) => h('ul', { class: 'brain-arts' }, list.map((a) => h('li', null,
+    h('a', { href: art(d.id, a.k) }, h('b', null, a.n), a.t ? ` ${a.t}` : ''))));
+  const node = (i) => {
+    const s = doc.secs[i];
+    const inner = [...(kids.get(i) || []).map(node), arts.get(i) ? artList(arts.get(i)) : null];
+    return h('details', { class: 'brain-sec', 'data-l': s.l }, h('summary', null, s.n), inner);
+  };
+  const top = (kids.get(-1) || []).map(node);
+  return [
+    docHeader(d),
+    missing ? h('p', { class: 'brain-empty' }, `O artigo ${missing} não existe neste diploma.`) : null,
+    top.length ? h('div', { class: 'brain-toc' }, top) : null,
+    arts.get(undefined) || arts.get(-1) ? artList(arts.get(undefined) || arts.get(-1)) : null,
+    !top.length ? artList(doc.arts) : null,
+    disclaimer(),
+  ];
+}
+
+function sectionPath(doc, a) {
+  const path = [];
+  for (let i = a.s; i != null && i >= 0; i = doc.secs[i]?.u) path.unshift(doc.secs[i].n);
+  return path;
+}
+
+function viewArticle(d, doc, i) {
+  const a = doc.arts[i];
+  const prev = doc.arts[i - 1];
+  const next = doc.arts[i + 1];
+  const key = `${d.id}:${a.k}`;
+  const chip = (ref) => {
+    const [rid, rk] = ref.split(':');
+    const rd = meta.byId[rid];
+    return h('a', { class: 'brain-chip', href: art(rid, rk), 'data-rank': rd?.rank }, `${rd?.short || rid}, art. ${rk}.º`);
+  };
+  const cited = (refs[key] || []).filter((r) => r !== key);
+  return [
+    docHeader(d),
+    h('nav', { class: 'brain-crumbs', 'aria-label': 'Localização' }, h('a', { href: hashFor(d.id) }, d.short), sectionPath(doc, a).map((s) => h('span', null, s))),
+    h('article', { class: 'brain-article' },
+      h('h4', null, h('small', null, `${d.short} · Artigo`), ' ', a.n),
+      a.t ? h('p', { class: 'brain-epigraph' }, a.t) : null,
+      articleText(a)),
+    a.r.length ? h('section', { class: 'brain-block' }, h('h3', null, 'Este artigo remete para'), h('div', { class: 'brain-chips' }, a.r.map(chip))) : null,
+    cited.length ? h('section', { class: 'brain-block' }, h('h3', null, 'Citado por'), h('div', { class: 'brain-chips' }, cited.map(chip))) : null,
+    h('nav', { class: 'brain-pager', 'aria-label': 'Artigos vizinhos' },
+      prev ? h('a', { href: art(d.id, prev.k) }, `← ${prev.n}`) : h('span'),
+      h('a', { href: hashFor(d.id) }, 'Índice'),
+      next ? h('a', { href: art(d.id, next.k) }, `${next.n} →`) : h('span')),
+    disclaimer(),
+  ];
+}
+
+// ── Router ──────────────────────────────────────────────────────────────────────────────────────
+let token = 0;
+async function render() {
+  const m = /^#\/lei(?:\/(.*))?$/.exec(location.hash);
+  if (!m) return;
+  const parts = (m[1] || '').split('/').filter(Boolean).map(decodeURIComponent);
+  const mine = ++token;
+  root.replaceChildren(loading());
+  try {
+    await ready();
+    if (mine !== token) return;
+    let content;
+    if (!parts.length) content = viewHome();
+    else if (parts[0] === 'busca') content = viewSearch(parts.slice(1).join('/'));
+    else content = viewDoc(parts[0], parts[1]);
+    root.replaceChildren(...content.filter(Boolean));
+  } catch (e) {
+    root.replaceChildren(h('p', { class: 'brain-empty' }, `${e.message} Abre a página através de um servidor.`));
+  }
+}
+window.addEventListener('hashchange', render);
+render();

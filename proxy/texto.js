@@ -7,14 +7,14 @@ const MAX_CHARS = 150_000;
 const UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36';
 
 // O DGSI e outros sites antigos servem ISO-8859-1/Windows-1252; ler como UTF-8 estragaria os acentos.
-export async function readHtml(res) {
+export async function readHtml(res, max = MAX_HTML) {
   const buf = await res.arrayBuffer();
   const head = new TextDecoder('latin1').decode(buf.slice(0, 4096));
   const charset = /charset=["']?([\w-]+)/i.exec(res.headers.get('content-type') || '')?.[1]
     || /<meta[^>]+charset=["']?([\w-]+)/i.exec(head)?.[1] || 'utf-8';
   let label = charset.toLowerCase();
   if (/^(iso-8859-1|latin1)$/.test(label)) label = 'windows-1252';
-  try { return new TextDecoder(label).decode(buf.slice(0, MAX_HTML)); } catch { return new TextDecoder('utf-8').decode(buf.slice(0, MAX_HTML)); }
+  try { return new TextDecoder(label).decode(buf.slice(0, max)); } catch { return new TextDecoder('utf-8').decode(buf.slice(0, max)); }
 }
 
 const BLOCK = /<\/?(?:p|div|br|li|ul|ol|tr|table|h[1-6]|section|article|blockquote|dd|dt|center)\b[^>]*>/gi;
@@ -134,7 +134,7 @@ export function sliceArticle(lines, n) {
 }
 
 // Escolhe o contentor com mais texto (main, article ou body) e converte-o em parágrafos.
-export function extractText(html, host = '', artigo = '') {
+export function extractText(html, host = '', artigo = '', limit = MAX_CHARS) {
   const clean = html
     .replace(/<!--[\s\S]*?-->/g, '')
     .replace(/<(script|style|noscript|nav|header|footer|aside|form|select|button|svg|iframe)\b[\s\S]*?<\/\1>/gi, '');
@@ -149,8 +149,8 @@ export function extractText(html, host = '', artigo = '') {
   const all = tidy(trim ? trim(best) : best, host);
   const lines = artigo ? sliceArticle(all, artigo) : all;
   let text = lines.join('\n\n');
-  const truncated = text.length > MAX_CHARS;
-  if (truncated) text = `${text.slice(0, MAX_CHARS).replace(/\s+\S*$/, '')}…`;
+  const truncated = text.length > limit;
+  if (truncated) text = `${text.slice(0, limit).replace(/\s+\S*$/, '')}…`;
   return { title, text, truncated };
 }
 
