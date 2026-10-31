@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Revisor de Texto</title>
-  <link rel="stylesheet" href="style.css?v=9">
+  <link rel="stylesheet" href="style.css?v=10">
 </head>
 <body>
   <header>
@@ -30,7 +30,33 @@
         <div id="backdrop" aria-hidden="true"></div>
         <textarea id="text" spellcheck="false" placeholder="Escreve ou cola aqui o teu texto…"></textarea>
       </div>
-      <p id="status" role="status">A carregar dicionário…</p>
+      <div class="editor-bar">
+        <p id="status" role="status">A carregar dicionário…</p>
+        <div class="editor-actions">
+          <button id="linkBtn" type="button" disabled title="Seleciona texto e liga-o a um endereço (Ctrl+K)">Ligação</button>
+          <button id="copyRich" type="button" title="Copia o texto com as ligações, para colar noutras aplicações">Copiar com ligações</button>
+        </div>
+      </div>
+      <div id="linkBar" hidden>
+        <span class="link-label">Ligação</span>
+        <span id="linkShown"></span>
+        <a id="linkOpen" target="_blank" rel="noopener noreferrer" title="Ou Ctrl+clique na ligação">Abrir</a>
+        <button id="linkEdit" type="button">Editar</button>
+        <button id="linkRemove" type="button">Remover</button>
+      </div>
+
+      <dialog id="linkDialog" class="small-dialog" aria-labelledby="linkTitle">
+        <form id="linkForm">
+          <h2 id="linkTitle">Ligação</h2>
+          <label for="linkUrl">Endereço</label>
+          <input id="linkUrl" type="text" placeholder="https://…" autocomplete="off" spellcheck="false">
+          <p id="linkError" role="alert" hidden>Endereço inválido. Usa um endereço http(s) ou de e-mail.</p>
+          <div class="dialog-actions">
+            <button type="button" id="linkCancel">Cancelar</button>
+            <button type="submit">Guardar</button>
+          </div>
+        </form>
+      </dialog>
 
       <section class="definition">
         <div class="def-head">
@@ -119,6 +145,6 @@
 
   <script src="config.js"></script>
   <script src="vendor/hunspell.js"></script>
-  <script src="app.js?v=9"></script>
+  <script src="app.js?v=10"></script>
 </body>
 </html>

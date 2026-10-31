@@ -10,6 +10,8 @@
   const undoStack = [];
   const MAX_UNDO = 200;
   let snap = null; // estado do texto no último ponto de referência
+  let links = []; // ligações no texto: [{ start, end, url }], ordenadas e sem sobreposição
+  let prevText = '';
   let typing = false;
   let typingTimer = null;
   let speller = null;
@@ -204,14 +206,25 @@
 
   function renderBackdrop() {
     const text = textEl.value;
-    let html = '', pos = 0;
-    issues.forEach((it, i) => {
-      html += esc(text.slice(pos, it.start));
-      const cls = [it.type === 'error' ? '' : it.type, i === activeIndex ? 'active' : ''].filter(Boolean).join(' ');
-      html += `<mark${cls ? ` class="${cls}"` : ''}>${esc(it.word)}</mark>`;
-      pos = it.end;
-    });
-    html += esc(text.slice(pos));
+    const cuts = new Set([0, text.length]);
+    for (const it of issues) { cuts.add(it.start); cuts.add(it.end); }
+    for (const l of links) { cuts.add(l.start); cuts.add(l.end); }
+    const pts = [...cuts].filter((p) => p >= 0 && p <= text.length).sort((a, b) => a - b);
+    let html = '', ii = 0, lj = 0;
+    for (let k = 0; k < pts.length - 1; k++) {
+      const s = pts[k], e = pts[k + 1];
+      while (ii < issues.length && issues[ii].end <= s) ii++;
+      while (lj < links.length && links[lj].end <= s) lj++;
+      const it = issues[ii] && issues[ii].start <= s ? issues[ii] : null;
+      const lk = links[lj] && links[lj].start <= s ? links[lj] : null;
+      let part = esc(text.slice(s, e));
+      if (it) {
+        const cls = [it.type === 'error' ? '' : it.type, ii === activeIndex ? 'active' : ''].filter(Boolean).join(' ');
+        part = `<mark${cls ? ` class="${cls}"` : ''}>${part}</mark>`;
+      }
+      if (lk) part = `<span class="lnk">${part}</span>`;
+      html += part;
+    }
     backdrop.innerHTML = html + '\n';
     syncScroll();
   }
@@ -317,7 +330,31 @@
     renderPersonal();
   }
 
-  const state = () => ({ text: textEl.value, lang: langEl.value });
+  const state = () => ({ text: textEl.value, lang: langEl.value, links: links.map((l) => ({ ...l })) });
+  const sameState = (a, b) => a.text === b.text && a.lang === b.lang && JSON.stringify(a.links) === JSON.stringify(b.links);
+
+  // Mantém as ligações coladas ao texto certo quando o texto muda (escrita, sugestões, tradução…).
+  function adjustLinks(before, after) {
+    if (before === after) return;
+    const max = Math.min(before.length, after.length);
+    let a = 0;
+    while (a < max && before[a] === after[a]) a++;
+    let b = 0;
+    while (b < max - a && before[before.length - 1 - b] === after[after.length - 1 - b]) b++;
+    const removed = before.length - a - b, inserted = after.length - a - b;
+    const delta = inserted - removed, editEnd = a + removed;
+    links = links.flatMap((l) => {
+      let { start: s, end: e } = l;
+      if (editEnd <= s) { s += delta; e += delta; }
+      else if (a >= e) { /* depois da ligação */ }
+      else if (a <= s && editEnd >= e) return [];
+      else if (a <= s) { s = a + inserted; e += delta; }
+      else if (editEnd >= e) e = a;
+      else e += delta;
+      return e > s ? [{ ...l, start: s, end: e }] : [];
+    });
+  }
+
   function pushUndo(s) {
     undoStack.push(s);
     if (undoStack.length > MAX_UNDO) undoStack.shift();
@@ -328,11 +365,14 @@
     typing = false;
     snap = state();
   }
-  // Qualquer alteração programática (sugestão, tradução…) fica registada como um passo.
+  // Qualquer alteração programática (sugestão, tradução, ligação…) fica registada como um passo.
   function recordChange(change) {
     endTyping();
     pushUndo(snap);
+    const before = textEl.value;
     change();
+    adjustLinks(before, textEl.value);
+    prevText = textEl.value;
     snap = state();
   }
 
@@ -354,6 +394,7 @@
     statusEl.textContent = `${textEl.value.length} caracteres · ${issues.length} possíveis erros` +
       (autoDetected ? ' · idioma detetado automaticamente' : '');
     store.set('draft', textEl.value);
+    store.set('links', links);
   }
 
   function scheduleCheck() {
@@ -425,6 +466,8 @@
   }
 
   textEl.addEventListener('input', () => {
+    adjustLinks(prevText, textEl.value);
+    prevText = textEl.value;
     // Cada rajada de escrita conta como um só passo para desfazer.
     if (!typing) { typing = true; pushUndo(snap); }
     clearTimeout(typingTimer);
@@ -695,7 +738,7 @@
   function setupInsert(url) {
     answerInsert.hidden = false;
     answerInsert.disabled = !lastSel;
-    answerInsert.textContent = lastSel ? 'Inserir ligação na seleção' : 'Seleciona texto no editor para inserir a ligação';
+    answerInsert.textContent = lastSel ? 'Ligar a seleção a esta página' : 'Seleciona texto no editor para o ligar a esta página';
     answerInsert.onclick = () => {
       let { start, end, text } = lastSel;
       if (textEl.value.slice(start, end) !== text) {
@@ -703,12 +746,9 @@
         if (start < 0) { answerInsert.textContent = 'A seleção já não existe no texto'; return; }
         end = start + text.length;
       }
-      recordChange(() => {
-        textEl.value = `${textEl.value.slice(0, start)}[${text}](${url})${textEl.value.slice(end)}`;
-      });
+      setLink(start, end, url);
       lastSel = null;
       answerDialog.close();
-      check();
     };
   }
   const fmtDate = (iso) => (iso ? new Date(iso).toLocaleDateString('pt-PT', { day: 'numeric', month: 'long', year: 'numeric' }) : '');
@@ -901,16 +941,136 @@
   renderTargets();
   updateTranslateButton();
 
+  // Ligações no texto: guardadas à parte (o editor continua a ser texto simples) e desenhadas no overlay.
+  const linkBtn = $('linkBtn'), linkBar = $('linkBar'), linkDialog = $('linkDialog');
+  const linkForm = $('linkForm'), linkInput = $('linkUrl'), linkError = $('linkError');
+  let linkTarget = null;
+
+  function normalizeUrl(value) {
+    let v = value.trim();
+    if (!v || /\s/.test(v)) return '';
+    if (/^[a-z][a-z0-9+.-]*:/i.test(v)) {
+      if (!/^(https?:|mailto:)/i.test(v)) return '';
+    } else v = `https://${v}`;
+    try {
+      const u = new URL(v);
+      return u.protocol === 'mailto:' || u.hostname.includes('.') ? u.href : '';
+    } catch { return ''; }
+  }
+
+  function linkAtSelection() {
+    const s = textEl.selectionStart, e = textEl.selectionEnd;
+    return links.find((l) => (s === e ? l.start <= s && s <= l.end : l.start < e && s < l.end)) || null;
+  }
+
+  function updateLinkBar() {
+    const cur = linkAtSelection();
+    linkBtn.disabled = textEl.selectionStart === textEl.selectionEnd && !cur;
+    linkBtn.textContent = cur ? 'Editar ligação' : 'Ligação';
+    linkBar.hidden = !cur;
+    if (!cur) return;
+    $('linkShown').textContent = cur.url.length > 70 ? `${cur.url.slice(0, 69)}…` : cur.url;
+    $('linkOpen').href = cur.url;
+  }
+
+  function refreshLinks() {
+    renderBackdrop();
+    store.set('links', links);
+    updateLinkBar();
+  }
+
+  function setLink(start, end, url) {
+    const text = textEl.value;
+    while (start < end && /\s/.test(text[start])) start++;
+    while (end > start && /\s/.test(text[end - 1])) end--;
+    if (start >= end) return;
+    recordChange(() => {
+      links = links.filter((l) => l.end <= start || l.start >= end);
+      if (url) links.push({ start, end, url });
+      links.sort((a, b) => a.start - b.start);
+    });
+    refreshLinks();
+  }
+
+  function openLinkDialog() {
+    const cur = linkAtSelection();
+    const s = textEl.selectionStart, e = textEl.selectionEnd;
+    linkTarget = s !== e ? { start: s, end: e } : cur && { start: cur.start, end: cur.end };
+    if (!linkTarget) return;
+    linkInput.value = cur?.url || '';
+    linkError.hidden = true;
+    linkDialog.showModal();
+    linkInput.select();
+  }
+
+  linkBtn.onclick = openLinkDialog;
+  $('linkEdit').onclick = openLinkDialog;
+  $('linkCancel').onclick = () => linkDialog.close();
+  $('linkRemove').onclick = () => {
+    const cur = linkAtSelection();
+    if (cur) setLink(cur.start, cur.end, '');
+  };
+  linkForm.onsubmit = (e) => {
+    e.preventDefault();
+    const url = normalizeUrl(linkInput.value);
+    if (!url) { linkError.hidden = false; return; }
+    setLink(linkTarget.start, linkTarget.end, url);
+    linkDialog.close();
+  };
+  ['select', 'keyup', 'mouseup', 'input'].forEach((ev) => textEl.addEventListener(ev, updateLinkBar));
+  textEl.addEventListener('click', (e) => {
+    if (!(e.ctrlKey || e.metaKey)) return;
+    const cur = linkAtSelection();
+    if (cur) window.open(cur.url, '_blank', 'noopener,noreferrer');
+  });
+  // Colar um endereço sobre texto selecionado transforma essa seleção numa ligação.
+  textEl.addEventListener('paste', (e) => {
+    const s = textEl.selectionStart, en = textEl.selectionEnd;
+    const pasted = (e.clipboardData?.getData('text') || '').trim();
+    if (s === en || !/^https?:\/\/\S+$/i.test(pasted)) return;
+    const url = normalizeUrl(pasted);
+    if (!url) return;
+    e.preventDefault();
+    setLink(s, en, url);
+  });
+
+  // Copia o texto com as ligações como HTML (para colar em Word, e-mail, CMS…).
+  const copyRich = $('copyRich');
+  copyRich.onclick = async () => {
+    const text = textEl.value;
+    const html = (s) => esc(s).replace(/\n/g, '<br>');
+    let out = '', pos = 0;
+    for (const l of links) {
+      out += `${html(text.slice(pos, l.start))}<a href="${esc(l.url).replace(/"/g, '&quot;')}">${html(text.slice(l.start, l.end))}</a>`;
+      pos = l.end;
+    }
+    out += html(text.slice(pos));
+    let label = 'Copiado';
+    try {
+      await navigator.clipboard.write([new ClipboardItem({
+        'text/html': new Blob([`<div>${out}</div>`], { type: 'text/html' }),
+        'text/plain': new Blob([text], { type: 'text/plain' }),
+      })]);
+    } catch {
+      try { await navigator.clipboard.writeText(text); label = 'Copiado (sem ligações)'; } catch { label = 'Não foi possível copiar'; }
+    }
+    copyRich.textContent = label;
+    setTimeout(() => { copyRich.textContent = 'Copiar com ligações'; }, 1800);
+  };
+
   function undo() {
     endTyping();
     let previous;
-    do { previous = undoStack.pop(); } while (previous && previous.text === textEl.value && previous.lang === langEl.value);
+    do { previous = undoStack.pop(); } while (previous && sameState(previous, state()));
     undoBtn.disabled = !undoStack.length;
     if (!previous) return;
     textEl.value = previous.text;
+    links = previous.links.map((l) => ({ ...l }));
+    prevText = previous.text;
     snap = previous;
     if (previous.lang !== langEl.value) setLanguage(previous.lang);
     else check();
+    refreshLinks();
     updateTranslateButton();
   }
   undoBtn.onclick = undo;
@@ -918,6 +1078,7 @@
     if (!(e.ctrlKey || e.metaKey)) return;
     const k = e.key.toLowerCase();
     if (k === 'z' && !e.shiftKey) { e.preventDefault(); undo(); }
+    else if (k === 'k') { e.preventDefault(); openLinkDialog(); }
     else if (k === 'y' || (k === 'z' && e.shiftKey)) e.preventDefault(); // sem refazer: o histórico nativo ficou desfasado
   });
   langEl.onchange = () => {
@@ -930,6 +1091,11 @@
   const savedLang = store.get('lang', 'pt-PT');
   langEl.value = LANGUAGES[savedLang] ? savedLang : 'pt-PT';
   textEl.value = store.get('draft', '');
+  prevText = textEl.value;
+  links = store.get('links', [])
+    .filter((l) => l && Number.isInteger(l.start) && Number.isInteger(l.end) && l.start >= 0 && l.start < l.end
+      && l.end <= textEl.value.length && /^(https?|mailto):/i.test(String(l.url)))
+    .sort((a, b) => a.start - b.start);
   autoDetect = !textEl.value.trim();
   snap = state();
   loadPersonal(langEl.value);

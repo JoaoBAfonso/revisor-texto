@@ -17,7 +17,11 @@ Só em português: pesquisa a seleção (ou um termo escrito) no consultório do
 
 ## Notícias
 
-Só em português: pesquisa uma palavra ou expressão em Público, Expresso, RTP, SIC Notícias, TVI, Correio da Manhã e A Mensagem (sites à escolha). Os resultados vêm do RSS do Bing Notícias, via proxy (rota `/noticias?q=&sites=`), e ao clicar abre um popup com título, data e o resumo, com ligação para o artigo. O popup mostra o autor e um excerto do início da notícia (cerca de 1800 caracteres, quando o site o disponibiliza ao proxy; caso contrário, o resumo), e permite inserir no editor uma ligação à notícia na seleção, em formato Markdown `[texto](url)`. Não se reproduz a notícia na íntegra.
+Só em português: pesquisa uma palavra ou expressão em Público, Expresso, RTP, SIC Notícias, TVI, Correio da Manhã e A Mensagem (sites à escolha). Os resultados vêm do RSS do Bing Notícias, via proxy (rota `/noticias?q=&sites=`), e ao clicar abre um popup com título, data e o resumo, com ligação para o artigo. O popup mostra o autor e um excerto do início da notícia (cerca de 1800 caracteres, quando o site o disponibiliza ao proxy; caso contrário, o resumo), e permite ligar a seleção do editor à notícia. Não se reproduz a notícia na íntegra.
+
+## Ligações no editor
+
+Seleciona texto e usa **Ligação** (ou Ctrl+K) para lhe associar um endereço (http, https ou e-mail). O texto fica sublinhado a azul sem mostrar o endereço; as ligações acompanham o texto ao editar, entram no histórico de desfazer e são guardadas com o rascunho. Com o cursor numa ligação aparece uma barra com Abrir, Editar e Remover (também Ctrl+clique abre). Colar um endereço sobre texto selecionado cria a ligação. **Copiar com ligações** copia HTML com as ligações para colar noutras aplicações.
 
 ## Tradução (DeepL)
 
