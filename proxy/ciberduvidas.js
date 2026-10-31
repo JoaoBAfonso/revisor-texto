@@ -47,6 +47,53 @@ export function parseCiberduvidas(html) {
   return results;
 }
 
+const ALLOWED_TAGS = new Set(['p', 'strong', 'b', 'em', 'i', 'br', 'ul', 'ol', 'li', 'blockquote', 'sup', 'sub']);
+
+// Só passam tags inofensivas, sem atributos; o texto é sempre escapado.
+function cleanHtml(html) {
+  const esc = (s) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  return html
+    .replace(/<(script|style)[\s\S]*?<\/\1>/gi, '')
+    .split(/(<[^>]*>)/)
+    .map((part) => {
+      const tag = /^<(\/?)([a-z0-9]+)/i.exec(part);
+      if (part.startsWith('<')) {
+        if (!tag || !ALLOWED_TAGS.has(tag[2].toLowerCase())) return '';
+        const name = tag[2].toLowerCase();
+        return name === 'br' ? '<br>' : `<${tag[1]}${name}>`;
+      }
+      return esc(decode(part));
+    })
+    .join('')
+    .replace(/<p>\s*<\/p>/g, '')
+    .trim();
+}
+
+export function parseAnswer(html) {
+  const block = (cls) => {
+    const m = new RegExp(`<div class="[^"]*${cls}[^"]*">([\\s\\S]*?)</div>\\s*(?:</div>|<div class="articleInfo")`).exec(html);
+    return m ? cleanHtml(m[1]) : '';
+  };
+  const question = block('description');
+  const answer = block('answerContent');
+  return {
+    title: grab(html, /<h3>\s*([\s\S]*?)\s*<\/h3>/),
+    question,
+    answer,
+    author: grab(html, /<a class="author"[^>]*>([\s\S]*?)<\/a>/),
+    date: grab(html, /<div class="date"[^>]*>([\s\S]*?)<\/div>/),
+  };
+}
+
+export async function fetchAnswer(url) {
+  if (!url.startsWith(`${BASE}/consultorio/perguntas/`)) throw new Error('URL inválida');
+  const res = await fetch(url, { headers: { 'User-Agent': UA } });
+  if (!res.ok) throw new Error(`Ciberdúvidas respondeu ${res.status}`);
+  const data = parseAnswer(await res.text());
+  if (!data.answer) throw new Error('Resposta não encontrada');
+  return { ...data, url };
+}
+
 function cookiesFrom(res) {
   const list = typeof res.headers.getSetCookie === 'function'
     ? res.headers.getSetCookie()

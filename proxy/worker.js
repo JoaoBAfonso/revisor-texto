@@ -3,7 +3,7 @@
 //   POST /translate    -> tradução via DeepL (a chave DEEPL_API_KEY fica só aqui, como segredo).
 //   GET  /duvidas?q=   -> dúvidas do consultório do Ciberdúvidas.
 import { lookupPriberam } from './priberam.js';
-import { searchCiberduvidas } from './ciberduvidas.js';
+import { searchCiberduvidas, fetchAnswer } from './ciberduvidas.js';
 
 // Origens autorizadas a usar o proxy. Substituir pelo endereço do GitHub Pages.
 const ALLOWED_ORIGINS = ['https://joaobafonso.github.io', 'http://localhost:8765', 'http://localhost:8000'];
@@ -73,6 +73,17 @@ export default {
         return json(result, 200, { ...headers, 'Cache-Control': 'public, max-age=3600' });
       } catch {
         return json({ error: 'Não foi possível consultar o Ciberdúvidas' }, 502, headers);
+      }
+    }
+
+    if (url.pathname === '/resposta') {
+      const target = url.searchParams.get('url') || '';
+      if (target.length > 300) return json({ error: 'URL inválido' }, 400, headers);
+      try {
+        const result = await fetchAnswer(target);
+        return json(result, 200, { ...headers, 'Cache-Control': 'public, max-age=86400' });
+      } catch {
+        return json({ error: 'Não foi possível obter a resposta' }, 502, headers);
       }
     }
 

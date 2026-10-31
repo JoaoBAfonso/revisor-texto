@@ -76,6 +76,19 @@ aside { position: sticky; top: var(--s4); max-height: calc(100vh - 2 * var(--s4)
 .doubt-list p { margin: var(--s1) 0; color: var(--muted); font-size: .9rem; }
 .doubt-list .meta { font-size: .8rem; color: var(--muted); }
 #doubtsResult .src { font-size: .8rem; margin: var(--s3) 0 0; }
+
+#answerDialog { width: min(720px, calc(100vw - var(--s5))); max-height: calc(100vh - var(--s6)); padding: 0; border: 0; background: var(--paper, #faf8f7); color: var(--ink); box-shadow: 0 0 0 4px var(--ink); flex-direction: column; }
+#answerDialog[open] { display: flex; }
+#answerDialog::backdrop { background: rgba(0, 0, 0, .6); }
+.dialog-head { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--s4); padding: var(--s4) var(--s5); background: var(--orange, #f67844); color: #000; }
+.dialog-head h2 { margin: 0; font-size: 1.1rem; line-height: 1.3; }
+.dialog-body { padding: var(--s5); overflow-y: auto; line-height: 1.65; }
+.dialog-body.error { color: var(--red); }
+.dialog-body h3 { margin: 0 0 var(--s2); font-size: .8rem; text-transform: uppercase; letter-spacing: .06em; }
+.dialog-body p { margin: 0 0 var(--s3); }
+.dialog-body .question { padding: var(--s4); margin-bottom: var(--s5); background: var(--sand); }
+.dialog-body .meta { font-size: .85rem; color: var(--muted); margin: var(--s4) 0 0; }
+.dialog-foot { margin: 0; padding: var(--s3) var(--s5); border-top: 1px solid #c9c1b9; font-size: .85rem; }
 ul { list-style: none; padding: 0; margin: 0; }
 #issues li { border-bottom: 1px solid #c9c1b9; padding: var(--s4) 0; }
 #issues li:first-child { padding-top: var(--s1); }

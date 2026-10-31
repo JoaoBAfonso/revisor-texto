@@ -565,6 +565,58 @@
     doubtsResult.textContent = text;
   };
 
+  const answerDialog = $('answerDialog'), answerBody = $('answerBody'), answerTitle = $('answerTitle');
+  const answerSource = $('answerSource');
+  const answerCache = new Map();
+  let answerSeq = 0;
+  $('answerClose').onclick = () => answerDialog.close();
+  answerDialog.addEventListener('click', (e) => { if (e.target === answerDialog) answerDialog.close(); });
+
+  function renderAnswer(d) {
+    answerTitle.textContent = d.title;
+    answerBody.className = 'dialog-body';
+    const wrap = (cls, label, html) => {
+      const box = document.createElement('div');
+      box.className = cls;
+      const h = document.createElement('h3');
+      h.textContent = label;
+      const body = document.createElement('div');
+      body.innerHTML = html; // já limpo no proxy: só tags de texto, sem atributos
+      box.append(h, body);
+      return box;
+    };
+    const meta = document.createElement('p');
+    meta.className = 'meta';
+    meta.textContent = [d.author && `Resposta de ${d.author}`, d.date].filter(Boolean).join(' · ');
+    answerBody.replaceChildren(wrap('question', 'Pergunta', d.question), wrap('answer', 'Resposta', d.answer), meta);
+  }
+
+  async function openAnswer(r) {
+    const api = window.REVISOR_CONFIG?.definitionApi;
+    const seq = ++answerSeq;
+    answerTitle.textContent = r.title;
+    answerSource.href = r.url;
+    answerBody.className = 'dialog-body';
+    answerBody.textContent = 'A carregar a resposta…';
+    if (!answerDialog.open) answerDialog.showModal();
+    answerBody.scrollTop = 0;
+    try {
+      let d = answerCache.get(r.url);
+      if (!d) {
+        const res = await fetch(`${api}/resposta?url=${encodeURIComponent(r.url)}`);
+        if (!res.ok) throw new Error();
+        d = await res.json();
+        answerCache.set(r.url, d);
+      }
+      if (seq === answerSeq) renderAnswer(d);
+    } catch {
+      if (seq === answerSeq) {
+        answerBody.className = 'dialog-body error';
+        answerBody.textContent = 'Não foi possível carregar a resposta. Usa a ligação abaixo para a ver no Ciberdúvidas.';
+      }
+    }
+  }
+
   function renderDoubts(data) {
     doubtsResult.className = '';
     doubtsResult.replaceChildren();
@@ -577,7 +629,8 @@
     for (const r of data.results) {
       const li = document.createElement('li');
       const a = document.createElement('a');
-      a.href = r.url; a.target = '_blank'; a.rel = 'noopener noreferrer';
+      a.href = r.url; a.rel = 'noopener noreferrer';
+      a.onclick = (e) => { if (window.REVISOR_CONFIG?.definitionApi) { e.preventDefault(); openAnswer(r); } };
       a.textContent = r.title;
       const p = document.createElement('p');
       p.textContent = r.summary;

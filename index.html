@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Revisor de Texto</title>
-  <link rel="stylesheet" href="style.css?v=6">
+  <link rel="stylesheet" href="style.css?v=7">
 </head>
 <body>
   <header>
@@ -79,6 +79,15 @@
     </aside>
   </main>
 
+  <dialog id="answerDialog" aria-labelledby="answerTitle">
+    <div class="dialog-head">
+      <h2 id="answerTitle">Dúvida</h2>
+      <button type="button" id="answerClose" aria-label="Fechar">Fechar</button>
+    </div>
+    <div id="answerBody" class="dialog-body"></div>
+    <p class="dialog-foot"><a id="answerSource" target="_blank" rel="noopener noreferrer">Ver no Ciberdúvidas</a></p>
+  </dialog>
+
   <footer>
     O texto é verificado no teu browser e nunca sai do teu computador. A palavra que escolheres definir é enviada ao Priberam (através do proxy) ou ao Wiktionary. O termo que pesquisares no Ciberdúvidas é enviado a esse site (através do proxy). O texto que mandares traduzir é enviado ao DeepL (através do proxy).
     Dicionários: LibreOffice/wooorm (LGPL-3.0 ou MPL-2.0).
@@ -86,6 +95,6 @@
 
   <script src="config.js"></script>
   <script src="vendor/hunspell.js"></script>
-  <script src="app.js?v=5"></script>
+  <script src="app.js?v=6"></script>
 </body>
 </html>
