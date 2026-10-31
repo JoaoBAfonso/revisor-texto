@@ -609,7 +609,7 @@
   }
 
   // Uma pesquisa = formulário + pedido ao proxy + desenho do resultado. Cancela o pedido anterior ao submeter outro.
-  function createSearch({ section, form, input, button, result, path, busy, fail, params, keep, render }) {
+  function createSearch({ section, form, input, button, result, path, busy, fail, params, keep, render, pre }) {
     let controller = null;
     const say = (text, isError = false) => { result.className = isError ? 'error' : ''; result.textContent = text; };
     const sync = () => { button.disabled = !input.value.trim(); };
@@ -617,6 +617,7 @@
     async function run() {
       const term = input.value.trim();
       if (!term) return;
+      if (await pre?.(term)) return;
       if (!API()) { say('Proxy não configurado.', true); return; }
       const extra = params?.() ?? {};
       if (extra.error) { say(extra.error, true); return; }
@@ -637,7 +638,13 @@
     input.addEventListener('input', sync);
     return {
       section, input, result, say, sync, run,
-      ask(term) { input.value = term; sync(); openPanel(section); section.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); run(); },
+    ask(term) {
+        if (location.hash.startsWith('#/direito/lei') && section.id === 'law') {
+          location.hash = '#/direito';
+          section.hidden = false;
+        }
+        input.value = term; sync(); openPanel(section); section.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); run();
+      },
     };
   }
 
@@ -691,8 +698,15 @@
     path: '/direito', busy: 'A interpretar e a pesquisar…', fail: 'Não foi possível pesquisar. Tenta novamente.',
     params: () => { const sources = checked(lawSources); return sources.length ? { sources: sources.join(',') } : { error: 'Escolhe pelo menos uma fonte.' }; },
     keep: (data) => data.results.length > 0,
+    // "artigo 37 CRP": abre o artigo guardado em vez de pesquisar.
+    pre: async (term) => {
+      const href = await (window.brain?.link(term).catch(() => null));
+      if (href) location.hash = href;
+      return !!href;
+    },
     render: (data) => renderLaw(data),
   });
+  window.addEventListener('law-ask', (e) => law.ask(String(e.detail || '')));
   const searches = [doubts, news, law];
 
   function updateDoubts() {
@@ -1008,17 +1022,31 @@
         crpBlock(t.crp),
         t.rights?.length ? lawBlock('Direitos à cabeça', lawList(t.rights.slice(0, 3))) : null,
         first ? h('p', { class: 'law-alert' }, h('strong', {}, 'Atenção ao prazo: '), `${first.when} — ${first.what.toLowerCase()}`) : null,
-        h('nav', { class: 'law-nav', 'aria-label': 'Ir para' }, [['law-angles', 'Perspetivas'], ['law-found', 'Fontes'], ['law-act', 'Agir'], ['law-models', 'Modelos']]
-          .map(([cls, label]) => h('button', { type: 'button', class: 'chip', onclick: () => scrollTo(cls) }, label)),
-          h('a', { class: 'chip', href: `#/lei/busca/${encodeURIComponent(data.term)}` }, 'Na lei, artigo a artigo →'))),
+        h('nav', { class: 'law-nav', 'aria-label': 'Ir para' }, [['law-statute', 'A lei'], ['law-angles', 'Perspetivas'], ['law-found', 'Fontes'], ['law-act', 'Agir'], ['law-models', 'Modelos']]
+          .map(([cls, label]) => h('button', { type: 'button', class: 'chip', onclick: () => scrollTo(cls) }, label)))),
+      statuteSection(t, data.term),
       lawSection('law-angles', 'Perspetivas e ângulos', 'Cada ângulo abre uma linha de pesquisa: toca nas sugestões para explorar.',
         angles.length ? h('div', { class: 'angles' }, angles.map((a) => h('article', { class: 'angle' },
           h('h4', {}, a.title), h('p', {}, a.text),
           a.search?.length ? h('p', { class: 'chips' }, a.search.map(chipButton)) : null))) : null,
         !angles.length && t.arguments?.length ? lawBlock('Argumentos úteis', lawList(t.arguments)) : null,
-        t.rights?.length > 3 ? h('details', { class: 'law-more' }, h('summary', {}, 'Todos os direitos desta área'), lawList(t.rights)) : null,
-        t.refs?.length ? lawBlock('Diplomas e artigos, da Constituição para baixo (toca para pesquisar)', h('p', { class: 'chips' }, sortRefs(t.refs).map(chipButton))) : null),
+        t.rights?.length > 3 ? h('details', { class: 'law-more' }, h('summary', {}, 'Todos os direitos desta área'), lawList(t.rights)) : null),
     ];
+  }
+
+  // A secção da lei vem do «cérebro jurídico» (lei.js): artigos completos por hierarquia, normas-chave e diplomas da matéria.
+  function statuteSection(t, term) {
+    const holder = h('div', { class: 'statute' }, h('p', { class: 'meta', role: 'status' }, 'A consultar a legislação…'));
+    const sec = lawSection('law-statute', 'A lei, por hierarquia',
+      'Da Constituição para baixo: a norma superior prevalece e a especial prevalece sobre a geral. Toca num artigo para o ler completo.', holder);
+    const fill = async () => {
+      try {
+        const nodes = await window.brain.section(term, t);
+        if (nodes?.length) holder.replaceChildren(...nodes); else sec.remove();
+      } catch { holder.replaceChildren(h('p', { class: 'meta' }, 'Não foi possível carregar a legislação guardada. Tenta novamente mais tarde.')); }
+    };
+    if (window.brain) fill(); else window.addEventListener('brain-ready', fill, { once: true });
+    return sec;
   }
 
   function lawBottom(t, values, onChange, syncs) {
@@ -1074,7 +1102,7 @@
       bottom.replaceChildren(...lawBottom(topics[i], values, onChange, syncs).filter(Boolean));
     }
     show(0);
-    const found = lawSection('law-found', 'Fontes e resultados', 'Legislação, jurisprudência e decisões de entidades oficiais. Toca num resultado para ler o excerto.',
+    const found = lawSection('law-found', 'Fontes e resultados', 'Jurisprudência, deliberações de entidades oficiais e diplomas fora da legislação guardada. Toca num resultado para o ler.',
       data.results.length ? lawResults(data.results) : h('p', {}, `Sem resultados diretos nas fontes escolhidas para «${data.term}».`));
     law.result.append(...[
       tabs, top, found, bottom,
@@ -1347,9 +1375,9 @@
     revisor: { title: 'Revisor de texto · Fumaça', product: 'Revisor', strap: 'Verificação ortográfica independente. Sem anúncios, sem rasto.' },
     noticias: { title: 'Arquivo de notícias · Fumaça', product: 'Notícias', strap: 'Como as palavras são usadas nas notícias.' },
     direito: { title: 'Direito e legislação · Fumaça', product: 'Direito', strap: 'Informação jurídica de serviço público. Não substitui um advogado.' },
-    lei: { title: 'Cérebro jurídico · Fumaça', product: 'Legislação', strap: 'A lei portuguesa por hierarquia, artigo a artigo.' },
   };
   function route() {
+    if (/^#\/lei(\/|$)/.test(location.hash)) { location.replace(location.hash.replace('#/lei', '#/direito/lei')); return; }
     const name = location.hash.replace(/^#\/?/, '').split(/[/?]/)[0];
     const view = VIEWS[name] ? name : 'home';
     if (view === currentView) return;

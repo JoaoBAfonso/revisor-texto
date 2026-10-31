@@ -56,12 +56,14 @@ O texto traduzido é enviado ao DeepL. O limite é de 5000 caracteres por pedido
 
 ## Toolbox
 
-O site é agora uma toolbox com uma página inicial e uma vista por ferramenta (routing por hash): #/revisor, #/noticias, #/direito e #/lei.
+O site é agora uma toolbox com uma página inicial e uma vista por ferramenta (routing por hash): #/revisor, #/noticias e #/direito. Dentro de Direito há dois modos: **Guia** (#/direito) e **Legislação** (#/direito/lei[/diploma[/artigo]]). O antigo #/lei redireciona.
 
-## Cérebro jurídico (#/lei)
+## Cérebro jurídico (parte de Direito e legislação)
 
-Corpus curado de 56 diplomas (Constituição, códigos, leis de valor reforçado, leis e decretos-leis, regimes sectoriais) em data/lei, gerado a partir do texto consolidado do PGDL. Não é "toda a legislação": o DRE e o EUR-Lex só servem texto com JavaScript. A lista e a hierarquia estão em proxy/corpus/catalog.mjs.
+É o conhecimento que guia a ferramenta de Direito. No Guia, cada pesquisa mostra a secção **A lei, por hierarquia** (normas-chave da área, diplomas da matéria e artigos completos agrupados da Constituição para baixo) antes das perspetivas, fontes externas, passos e modelos. No modo Legislação percorres a hierarquia, os diplomas, o índice de cada um e cada artigo com «remete para» e «citado por».
 
-- Regenerar: cd proxy; node corpus/build.mjs (opções: --force, --only id,id, --index). Escreve data/lei/<id>.json, meta.json, index.json (índice invertido), refs.json (citações) e heads.json (epígrafes).
-- Cliente: lei.js pesquisa por tokens (os mesmos de proxy/corpus/tokens.mjs), agrupa por grau hierárquico, abre artigos completos e segue remissões ("remete para" / "citado por"). Aceita atalhos como "artigo 37 CRP".
+Corpus curado de 56 diplomas (Constituição, códigos, leis de valor reforçado, leis e decretos-leis, regimes sectoriais) em data/lei, gerado a partir do texto consolidado do PGDL. Não é "toda a legislação": o DRE e o EUR-Lex só servem texto com JavaScript. A lista, a hierarquia e as áreas (as mesmas ids de proxy/guia.js) estão em proxy/corpus/catalog.mjs.
+
+- Regenerar: cd proxy; node corpus/build.mjs (opções: --force, --only id,id, --index). Escreve data/lei/<id>.json, meta.json (inclui os temas de guia.js), index.json (índice invertido), refs.json (citações) e heads.json (epígrafes). Remove do texto as notas de alterações do PGDL.
+- Cliente: lei.js pesquisa por tokens (os mesmos de proxy/corpus/tokens.mjs), reforça os diplomas da área identificada, agrupa por grau hierárquico e expõe window.brain (section, link, ref). Aceita atalhos como "artigo 37 CRP".
 - Orientativo: o texto pode estar desatualizado. Confirma no Diário da República e consulta um jurista.

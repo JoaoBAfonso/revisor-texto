@@ -12,6 +12,7 @@ import { fileURLToPath } from 'node:url';
 import { CATALOG, RANKS, ALIASES } from './catalog.mjs';
 import { readHtml, extractText } from '../texto.js';
 import { tokens } from './tokens.mjs';
+import { TOPICS } from '../guia.js';
 
 const OUT = join(dirname(fileURLToPath(import.meta.url)), '..', '..', 'data', 'lei');
 mkdirSync(OUT, { recursive: true });
@@ -164,9 +165,14 @@ const head = new Map();
 const inbound = {};
 
 let off = 0;
+// O PGDL acrescenta a cada artigo a lista de alterações e de versões anteriores: não é texto da lei.
+const NOTE = /^(Cont[ée]m as altera[çc][õo]es|Consultar vers[õo]es anteriores|Aditado pelo|P[áa]ginas:|Seguinte\s*>|<\s*Anterior|Texto (inicial|original)|Artigo (revogado|alterado) pel)/i;
+const trimNotes = (x) => { const lines = x.split('\n'); const i = lines.findIndex((l) => NOTE.test(l.trim())); return (i < 0 ? lines : lines.slice(0, i)).join('\n').trim(); };
 for (const d of docs) {
   let dirty = false;
   d.arts.forEach((a, i) => {
+    const clean = trimNotes(a.x);
+    if (clean !== a.x && clean) { a.x = clean; dirty = true; }
     const valid = a.r.filter((r) => keys.has(r));
     if (valid.length !== a.r.length) { a.r = valid; dirty = true; }
     for (const r of a.r) (inbound[r] ||= new Set()).add(`${d.id}:${a.k}`);
@@ -175,10 +181,12 @@ for (const d of docs) {
     for (const t of new Set(tokens(`${a.t} ${d.short}`))) (head.get(t) || head.set(t, []).get(t)).push(gid);
   });
   if (dirty) writeFileSync(file(d.id), JSON.stringify(d));
-  meta.docs.push({ id: d.id, name: d.name, short: d.short, rank: d.rank, area: d.area, url: d.url, title: d.title, off, n: d.arts.length, secs: d.secs.length });
+  const c = CATALOG.find((x) => x.id === d.id);
+  meta.docs.push({ id: d.id, name: c.name, short: c.short, rank: c.rank, area: c.area, url: d.url, title: d.title, off, n: d.arts.length, secs: d.secs.length });
   off += d.arts.length;
 }
 meta.total = off;
+meta.topics = TOPICS.map((t) => ({ id: t.id, area: t.area }));
 
 // Palavras presentes em mais de 20% dos artigos não distinguem nada. Listas ordenadas, em deltas.
 const delta = (list) => list.map((g, i) => (i ? g - list[i - 1] : g));

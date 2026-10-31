@@ -690,6 +690,17 @@
 @layer components {
   #view-lei { max-width: 56rem; }
   .brain-shell { padding: clamp(var(--s4), 4vw, var(--s7)); }
+  .brain-shell[hidden] { display: none; }
+  .law-modes { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0; margin: var(--s4) 0 0; border: 2px solid var(--ink); }
+  .law-modes a { display: grid; gap: 2px; padding: var(--s3) var(--s4); text-align: center; text-decoration: none; color: var(--ink); font-family: var(--display); font-weight: 700; font-size: 1.15rem; text-transform: uppercase; letter-spacing: .5px; }
+  .law-modes a + a { border-left: 2px solid var(--ink); }
+  .law-modes small { font-family: inherit; font-weight: 400; font-size: .75rem; letter-spacing: .5px; color: var(--muted); }
+  .law-modes a[aria-current="true"] { background: var(--ink); color: var(--paper); }
+  .law-modes a[aria-current="true"] small { color: var(--sand); }
+  .law-modes a:focus-visible { outline: var(--focus); outline-offset: -4px; }
+  #lawResult .statute { display: grid; gap: var(--s5); text-align: left; }
+  #lawResult .statute .brain-more-link { text-align: center; margin: 0; font-family: var(--display); font-weight: 700; }
+  .brain-more-link { text-align: center; margin: 0; }
   .brain-shell .def-head { justify-content: center; text-align: center; margin-bottom: var(--s5); }
   .brain-shell .def-head a { color: inherit; text-decoration: none; }
   #brain { display: grid; gap: var(--s6); min-width: 0; }
@@ -710,8 +721,9 @@
   .brain-group > h3 { border: 0; padding: 0; }
   .brain-tier-note { margin: var(--s1) 0 var(--s2); font-size: .9rem; color: var(--muted); }
   .brain-docs, .brain-hits, .brain-arts, .brain-method { margin: 0; padding: 0; list-style: none; }
-  .brain-docs li { display: flex; justify-content: space-between; gap: var(--s3); padding: var(--s2) 0; border-bottom: 1px solid var(--line); }
-  .brain-docs li span { color: var(--muted); font-size: .85rem; white-space: nowrap; }
+  .brain-docs li { display: flex; flex-wrap: wrap; justify-content: space-between; gap: var(--s1) var(--s3); padding: var(--s2) 0; border-bottom: 1px solid var(--line); }
+  .brain-docs li a { min-width: 0; overflow-wrap: anywhere; }
+  .brain-docs li span { color: var(--muted); font-size: .85rem; }
   .brain-method { display: grid; gap: var(--s3); counter-reset: m; }
   .brain-method li { counter-increment: m; padding-left: 2.6rem; position: relative; }
   .brain-method li::before { content: counter(m, decimal-leading-zero); position: absolute; left: 0; top: 0; font-family: var(--display); font-weight: 700; color: var(--orange); font-size: 1.2rem; }

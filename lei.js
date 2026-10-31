@@ -3,7 +3,7 @@ import { tokens } from './proxy/corpus/tokens.mjs';
 
 const root = document.getElementById('brain');
 const DATA = 'data/lei';
-const REV = '1';
+const REV = '3';
 
 const h = (tag, props, ...kids) => {
   const el = document.createElement(tag);
@@ -29,8 +29,10 @@ const load = (name) => {
 };
 
 const undelta = (list) => { let a = 0; return list.map((d) => (a += d)); };
-const hashFor = (...parts) => `#/lei${parts.length ? `/${parts.map(encodeURIComponent).join('/')}` : ''}`;
+const hashFor = (...parts) => `#/direito/lei${parts.length ? `/${parts.map(encodeURIComponent).join('/')}` : ''}`;
 const art = (id, k) => hashFor(id, k);
+const ask = (q) => window.dispatchEvent(new CustomEvent('law-ask', { detail: q }));
+const plain = (s) => s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9/ ]+/g, ' ').replace(/\s+/g, ' ').trim();
 
 // Princípios de raciocínio que aparecem em qualquer argumentação (fontes: CRP e Código Civil).
 const METHOD = [
@@ -62,7 +64,8 @@ const docOf = (gid) => {
 };
 
 // ── Pesquisa ────────────────────────────────────────────────────────────────────────────────────
-function search(q) {
+// areaId: área jurídica já identificada; reforça os diplomas dessa área.
+function search(q, areaId) {
   const terms = [...new Set(tokens(q))];
   const score = new Map();
   for (const t of terms) {
@@ -81,9 +84,9 @@ function search(q) {
   const best = Math.max(0, ...[...score.values()].map((s) => s.n.size));
   return [...score]
     .filter(([, s]) => s.n.size >= Math.max(1, best - (best > 2 ? 1 : 0)))
-    .sort((a, b) => b[1].n.size - a[1].n.size || b[1].v - a[1].v)
-    .slice(0, 120)
-    .map(([g, s]) => ({ g, ...docOf(g), v: s.v }));
+    .map(([g, s]) => { const x = docOf(g); return { g, ...x, n: s.n.size, v: s.v * (areaId && x.d.area.includes(areaId) ? 1.5 : 1) }; })
+    .sort((a, b) => b.n - a.n || b.v - a.v)
+    .slice(0, 120);
 }
 
 function diplomasFor(q) {
@@ -95,12 +98,32 @@ function diplomasFor(q) {
   });
 }
 
-// "artigo 65 crp", "65.º CRP", "art. 483 cc"
-function direct(q) {
-  const m = /^(?:art(?:igo)?\.?\s*)?(\d+(?:-[A-Z])?)\s*\.?\s*º?\s*(?:n\.?º?\s*\d+\s*)?(?:d[oae]s?\s+)?([a-zà-ú]+)$/i.exec(q.trim());
-  if (!m) return null;
-  const d = meta.byShort[m[2].toLowerCase()] || meta.byId[m[2].toLowerCase()];
-  return d ? { d, k: m[1] } : null;
+// "artigo 65 CRP", "65.º do CRP", "CRP, art. 65.º", "Código Civil, art. 483.º"; sem artigo, o diploma ("Lei n.º 2/99").
+function parseRef(q) {
+  const s = q.trim().replace(/\s+/g, ' ');
+  let m = /^(.+?),?\s+art(?:igo)?s?\.?\s*(\d+(?:-[A-Z])?)\s*\.?\s*º?\b/i.exec(s);
+  if (m) return { name: plain(m[1]), k: m[2].toUpperCase() };
+  m = /^(?:art(?:igo)?s?\.?\s*)?(\d+(?:-[A-Z])?)\s*\.?\s*º?\s*(?:n\.?º?\s*\d+\s*)?(?:d[oae]s?\s+)?(.+)$/i.exec(s);
+  if (m) return { name: plain(m[2]), k: m[1].toUpperCase() };
+  return { name: plain(s), k: null };
+}
+
+function findDoc(name) {
+  if (name.length < 2) return null;
+  return meta.byShort[name] || meta.byId[name]
+    || meta.docs.find((d) => plain(d.short) === name || plain(d.name) === name)
+    || (name.length > 6 && meta.docs.find((d) => plain(d.name).startsWith(name) || plain(d.title).startsWith(name)))
+    || null;
+}
+
+// Devolve a ligação interna para um artigo ou diploma, ou null se não estiver no corpus.
+function resolveRef(text, { needArticle = false } = {}) {
+  const { name, k } = parseRef(text);
+  const d = findDoc(name);
+  if (!d) return null;
+  if (!k) return needArticle ? null : hashFor(d.id);
+  for (let i = 0; i < d.n; i++) if (heads[d.off + i][0] === k.toLowerCase() || heads[d.off + i][0] === k) return art(d.id, heads[d.off + i][0]);
+  return needArticle ? null : hashFor(d.id);
 }
 
 // ── Peças de interface ─────────────────────────────────────────────────────────────────────────
@@ -115,11 +138,11 @@ function articleText(a) {
 }
 
 function searchBox(value = '') {
-  const input = h('input', { type: 'search', maxlength: '120', value, placeholder: 'Tema, palavra ou artigo (ex.: arrendamento, artigo 65 CRP)…', 'aria-label': 'Pesquisar na legislação', autocomplete: 'off' });
+  const input = h('input', { type: 'search', maxlength: '120', value, placeholder: 'Tema, palavra ou artigo (ex.: despejo, artigo 65 CRP)…', 'aria-label': 'Perguntar ao guia jurídico', autocomplete: 'off' });
   const go = (e) => {
     e.preventDefault();
     const q = input.value.trim();
-    location.hash = q ? hashFor('busca', q) : hashFor();
+    if (q) ask(q);
   };
   return h('form', { class: 'doubts-form brain-search', onsubmit: go }, input, h('button', { type: 'submit' }, 'Pesquisar'));
 }
@@ -140,8 +163,10 @@ function disclaimer() {
 function viewHome() {
   const byRank = meta.ranks.map((r) => ({ ...r, docs: meta.docs.filter((d) => d.rank === r.rank) })).filter((r) => r.docs.length);
   return [
-    h('p', { class: 'brain-lead' }, `${meta.total.toLocaleString('pt-PT')} artigos de ${meta.docs.length} diplomas, ordenados pela hierarquia das normas. Pesquisa um tema e percorre a lei, da Constituição às leis especiais.`),
-    searchBox(),
+    h('p', { class: 'brain-lead' }, `${meta.total.toLocaleString('pt-PT')} artigos de ${meta.docs.length} diplomas, ordenados pela hierarquia das normas. Escolhe um tema, ou percorre a lei da Constituição às leis especiais.`),
+    h('section', { class: 'brain-block' },
+      h('h3', null, 'Explorar por tema'),
+      h('div', { class: 'brain-chips' }, meta.topics.map((t) => h('button', { type: 'button', class: 'chip', onclick: () => ask(t.area) }, t.area)))),
     method(),
     h('section', { class: 'brain-block' },
       h('h3', null, 'A hierarquia das normas'),
@@ -155,8 +180,6 @@ function viewHome() {
 }
 
 function viewSearch(q) {
-  const hit = direct(q);
-  if (hit) { location.replace(art(hit.d.id, hit.k)); return []; }
   const results = search(q);
   const docs = diplomasFor(q);
   const groups = meta.ranks.map((r) => ({ ...r, items: results.filter((x) => x.d.rank === r.rank) })).filter((g) => g.items.length);
@@ -179,8 +202,33 @@ function viewSearch(q) {
   return out;
 }
 
-function group(g) {
-  const shown = 6;
+// ── Integração com o guia: o que a lei diz sobre o termo pesquisado ──────────────────────────────────
+async function section(q, topic) {
+  await ready();
+  const results = search(q, topic?.id);
+  const docs = diplomasFor(q);
+  const areaDocs = topic ? meta.docs.filter((d) => d.area.includes(topic.id)).sort((a, b) => a.rank - b.rank) : [];
+  const groups = meta.ranks.map((r) => ({ ...r, items: results.filter((x) => x.d.rank === r.rank) })).filter((g) => g.items.length);
+  const refs = (topic?.refs || []).map((text) => ({ text, href: resolveRef(text) }));
+  if (!groups.length && !areaDocs.length && !docs.length && !refs.length) return null;
+  const chip = ({ text, href }) => (href
+    ? h('a', { class: 'brain-chip', href }, text)
+    : h('button', { type: 'button', class: 'chip', onclick: () => ask(text) }, text));
+  return [
+    refs.length ? h('section', { class: 'brain-block' }, h('h3', null, 'Normas-chave'),
+      h('p', { class: 'meta' }, 'Do topo da hierarquia para baixo. Cada ligação abre o artigo completo, com as remissões para outras leis.'),
+      h('div', { class: 'brain-chips' }, [...refs].sort((a, b) => (a.href ? 0 : 1) - (b.href ? 0 : 1)).map(chip))) : null,
+    areaDocs.length || docs.length ? h('section', { class: 'brain-block' }, h('h3', null, 'Diplomas desta matéria'),
+      h('ul', { class: 'brain-docs' }, [...new Map([...docs, ...areaDocs].map((d) => [d.id, d])).values()].slice(0, 8).map((d) => h('li', null,
+        h('a', { href: hashFor(d.id) }, d.name), h('span', null, `Grau ${d.rank} · ${d.n} artigos`))))) : null,
+    groups.length ? h('div', { class: 'brain-ladder' }, groups.map((g) => h('span', { 'data-rank': g.rank }, `${g.name} · ${g.items.length}`))) : null,
+    ...groups.map((g) => group(g, 3)),
+    groups.length ? h('p', { class: 'brain-more-link' }, h('a', { href: hashFor('busca', q) }, `Ver os ${results.length} artigos encontrados →`)) : null,
+    method(),
+  ].filter(Boolean);
+}
+
+function group(g, shown = 6) {
   const list = h('ul', { class: 'brain-hits' });
   const row = (x) => h('li', { class: 'brain-hit' }, hitCard(x));
   g.items.forEach((x, i) => { const li = row(x); if (i >= shown) li.hidden = true; list.append(li); });
@@ -293,9 +341,18 @@ function viewArticle(d, doc, i) {
 
 // ── Router ──────────────────────────────────────────────────────────────────────────────────────
 let token = 0;
+const guide = document.getElementById('law');
+const shell = document.getElementById('brain-shell');
+const modes = { guide: document.getElementById('modeGuide'), law: document.getElementById('modeLaw') };
 async function render() {
-  const m = /^#\/lei(?:\/(.*))?$/.exec(location.hash);
+  const m = /^#\/direito(?:\/lei(?:\/(.*))?)?$/.exec(location.hash);
+  const browsing = !!m && location.hash.startsWith('#/direito/lei');
   if (!m) return;
+  guide.hidden = browsing;
+  shell.hidden = !browsing;
+  modes.guide.setAttribute('aria-current', String(!browsing));
+  modes.law.setAttribute('aria-current', String(browsing));
+  if (!browsing) return;
   const parts = (m[1] || '').split('/').filter(Boolean).map(decodeURIComponent);
   const mine = ++token;
   root.replaceChildren(loading());
@@ -307,9 +364,18 @@ async function render() {
     else if (parts[0] === 'busca') content = viewSearch(parts.slice(1).join('/'));
     else content = viewDoc(parts[0], parts[1]);
     root.replaceChildren(...content.filter(Boolean));
+    window.scrollTo(0, 0);
   } catch (e) {
     root.replaceChildren(h('p', { class: 'brain-empty' }, `${e.message} Abre a página através de um servidor.`));
   }
 }
 window.addEventListener('hashchange', render);
 render();
+
+window.brain = {
+  section,
+  // Ligação interna para "artigo 37 CRP" e semelhantes; null se não for uma citação de artigo do corpus.
+  async link(q) { await ready(); return resolveRef(q, { needArticle: true }); },
+  async ref(q) { await ready(); return resolveRef(q); },
+};
+window.dispatchEvent(new Event('brain-ready'));
