@@ -24,7 +24,9 @@ export const CATALOG = [
 
   A('ltc', 'Lei Orgânica do Tribunal Constitucional', 'LTC', 2, ['*']),
   A('lbh', 'Lei de bases da habitação', 'Lei de Bases da Habitação', 2, ['arrendamento'], ['Lei de Bases da Habita[çc][ãa]o']),
-  A('lba', 'Lei de Bases do Ambiente', 'Lei de Bases do Ambiente', 2, ['ambiente']),
+  // A busca do PGDL por «Lei de Bases do Ambiente» devolve a revogada Lei n.º 11/87: o nid fixa a Lei n.º 19/2014.
+  { ...A('lba', 'Lei de Bases do Ambiente', 'Lei de Bases do Ambiente', 2, ['ambiente'], ['Lei de Bases do Ambiente', 'Lei de Bases da Pol[íi]tica de Ambiente']), nid: 2091 },
+  { ...A('lbs', 'Lei de Bases da Saúde', 'Lei de Bases da Saúde', 2, ['saude'], ['Lei de Bases da Sa[úu]de']), nid: 3197 },
   A('segsocial', 'As Bases Gerais do Sistema de Segurança Social', 'Bases da Segurança Social', 2, ['seguranca-social']),
   A('losj', 'Lei da Organização do Sistema Judiciário', 'LOSJ', 2, ['*'], ['LOSJ']),
   A('estmp', 'Estatuto do Ministério Público (Novo)', 'Estatuto do MP', 2, ['*']),
@@ -66,10 +68,13 @@ export const CATALOG = [
   A('lpd', 'Lei da Proteção de Dados Pessoais', 'Lei da Proteção de Dados', 4, ['dados']),
   A('imprensa', 'Lei de Imprensa', 'Lei de Imprensa', 4, ['imprensa', 'resposta', 'honra', 'privacidade']),
   A('tv', 'Lei da Televisão e dos Serviços Audiovisuais a Pedido', 'Lei da Televisão', 4, ['imprensa', 'resposta']),
-  A('radio', 'Lei da Rádio', 'Lei da Rádio', 4, ['imprensa', 'resposta']),
+  // A busca do PGDL por «Lei da Rádio» devolve a revogada Lei n.º 4/2001: o nid fixa a Lei n.º 54/2010.
+  { ...A('radio', 'Lei da Rádio', 'Lei da Rádio', 4, ['imprensa', 'resposta'], ['Lei da R[áa]dio']), nid: 1293 },
+  { ...A('erc', 'Entidade Reguladora para a Comunicação Social (ERC)', 'Estatutos da ERC', 4, ['imprensa', 'resposta'], ['Entidade Reguladora para a Comunica[çc][ãa]o Social', 'ERC']), nid: 588 },
   A('estjorn', 'Estatuto do Jornalista', 'Estatuto do Jornalista', 4, ['imprensa', 'resposta', 'sigilo']),
   A('cibercrime', 'Lei do Cibercrime', 'Lei do Cibercrime', 4, ['justica', 'arguido', 'dados']),
   A('consumidor', 'Lei de Defesa do Consumidor', 'Lei de Defesa do Consumidor', 4, ['consumo']),
+  { ...A('vendabens', 'Compra e Venda de Bens de Consumo e Conteúdos Digitais', 'Venda de Bens de Consumo', 4, ['consumo']), nid: 3471 },
   A('nacionalidade', 'Lei da Nacionalidade', 'Lei da Nacionalidade', 4, ['estrangeiros']),
   A('estrangeiros', 'Entrada, Permanência, Saída e Afastamento de Estrangeiros', 'Lei de Estrangeiros', 4, ['estrangeiros']),
   A('segint', 'Lei de Segurança Interna', 'Lei de Segurança Interna', 4, ['justica', 'arguido']),
@@ -82,6 +87,7 @@ export const CATALOG = [
   A('relig', 'Lei da Liberdade Religiosa', 'Liberdade Religiosa', 4, ['participacao']),
   A('saudemental', 'Lei da Saúde Mental', 'Lei da Saúde Mental', 4, ['saude']),
   A('vitima', 'Estatuto da Vítima', 'Estatuto da Vítima', 4, ['justica', 'arguido', 'familia', 'violencia']),
+  { ...A('divorcio', 'Alterações ao Regime Jurídico do Divórcio', 'Lei do Divórcio', 4, ['familia']), nid: 1028 },
   A('vd', 'Regime Jurídico Aplicável à Prevenção da Violência Doméstica e à Protecção e Assistência Suas Vítimas', 'Violência Doméstica', 4, ['justica', 'arguido', 'familia', 'violencia']),
 ];
 

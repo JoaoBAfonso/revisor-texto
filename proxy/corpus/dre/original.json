@@ -1,0 +1,156 @@
+{
+ "versionInfo": {
+  "moduleVersion": "3RLECzcfCngi2cX7om1Amw",
+  "apiVersion": "B3l5BYZxaLmWUxGR3tmKGw"
+ },
+ "viewName": "Legislacao_Conteudos.Conteudo_Detalhe",
+ "screenData": {
+  "variables": {
+   "ParteIdAux": "0",
+   "Pesquisa": "",
+   "Comes": "",
+   "ShowResumoPT": false,
+   "ShowResumoEN": false,
+   "HasJurisprudenciaAssociadaVar": false,
+   "IsPageTracked": false,
+   "ShowDiplomaFragmentacaoIndice": false,
+   "ShowDiplomaFragmentacaoTextoCompleto": false,
+   "ShowDiplomaFragmentacaoMenuCabecalho": false,
+   "ShowDiplomaAtoOriginalTexto": true,
+   "ELI_HTML": "",
+   "IsShowConteudoRelacionado": true,
+   "IsRefinarPesquisa": true,
+   "TextoFormatadoAux": "",
+   "FragmentoVersaoIdAux": "0",
+   "IsPrint": false,
+   "IsLoadingPDFAtoOriginal": false,
+   "IsCopyTextLoading": false,
+   "ShowScrollButtons": true,
+   "KeyAux": "",
+   "EmissorDesignacao": "",
+   "CanShowAllData": false,
+   "IndexPT": 0,
+   "Tipo": "lei",
+   "_tipoInDataFetchStatus": 1,
+   "Key": "10-2000-303580",
+   "_keyInDataFetchStatus": 1,
+   "ParteId": "",
+   "_parteIdInDataFetchStatus": 1,
+   "GetAllConteudoDetalheData": {
+    "ElementType": "",
+    "IsVisible": false,
+    "HasIndice": false,
+    "IsConsolidado": false,
+    "DiplomaFragIdAux": "0",
+    "Ano": 0,
+    "DomainName": "False",
+    "ApplicationRoot": "",
+    "EnvironmentName": "",
+    "DetalheConteudo": {
+     "Id": "0",
+     "Titulo": "",
+     "Publicacao": "",
+     "Numero": "",
+     "Resumo": "",
+     "Sumario": "",
+     "Texto": "",
+     "TextoFormatado": "",
+     "DataPublicacao": "1900-01-01",
+     "DataDistribuicao": "1900-01-01",
+     "DataDisponibilizacao": "1900-01-01",
+     "DataAssinatura": "1900-01-01",
+     "Emissor": "",
+     "EmissorAcronimo": "",
+     "Parte": "",
+     "Serie": "",
+     "Suplemento": "",
+     "Processo": "",
+     "Vigencia": "",
+     "URL_PDF": "",
+     "TipoConteudo": "",
+     "TipoDiploma": "",
+     "TipoDiplomaAcronimo": "",
+     "TipoDiplomaExterno": "",
+     "Notas": "",
+     "Pagina": "",
+     "PaginaOffset": "",
+     "ELI": "",
+     "ELIMetadataHTML": "",
+     "IsDiplomaExterno": false,
+     "IsDiplomaLegis": false,
+     "LinkSitemap": "",
+     "DiarioRepublica": {
+      "Numero": "",
+      "NumPaginas_PDF": "",
+      "Tamanho_PDF": "",
+      "URL_PDF": "",
+      "Id": "0"
+     },
+     "AtosSocietarios": {
+      "Concelho": "",
+      "Conservatoria": "",
+      "Empresa": ""
+     },
+     "AcordaoSTA": {
+      "Assunto": "",
+      "DataEmQueFoiProferido": ""
+     },
+     "DiplomaLegis": {
+      "EntidadeProponente": "",
+      "IsNoIndex": false
+     },
+     "DiplomaRegTrab": {
+      "Fonte_AJ": ""
+     },
+     "DiplomaLegacor": {
+      "FonteRegional": "",
+      "EntidadeEmitente_AJ": {
+       "List": [],
+       "EmptyListItem": ""
+      }
+     },
+     "DiplomaExterno": {
+      "Descritores": "",
+      "FonteDireito": "",
+      "Relator": ""
+     },
+     "ContratoPublico": {
+      "IsAnuncioAlteracao": false
+     }
+    },
+    "HasJurisprudenciaAssociada": false,
+    "HasIndiceDiplomaFragmentacao": false,
+    "HaveEmissor_DecisaoJudicial": false,
+    "PageName": "",
+    "DiarioRepublicaLinkSitemap": "",
+    "HaveFragmentoVersaoOnURL": false,
+    "KeyParteId": "0",
+    "KeyConteudoId": "0",
+    "KeyFragmentoVersaoId": "0",
+    "NewKey": "",
+    "DataFetchStatus": 0
+   }
+  }
+ },
+ "clientVariables": {
+  "NewUser": "https://diariodarepublica.pt/dr/utilizador/registar",
+  "PesquisaAvancada": "https://diariodarepublica.pt/dr/pesquisa-avancada",
+  "Login": "https://diariodarepublica.pt/dr/utilizador/entrar",
+  "Data": "2026-10-31",
+  "DicionarioJuridicoId": "0",
+  "FullHTMLURL_EN": "https://diariodarepublica.pt/dr/en",
+  "SearchStartIndex": 0,
+  "StartIndex": 0,
+  "SearchIsConsolidation": false,
+  "DiarioRepublicaId": "",
+  "SearchFilters": "",
+  "Serie": true,
+  "DiplomaConteudoId": "",
+  "CookiePath": "/dr/",
+  "Session_GUID": "fb273538-c518-4a17-b7db-cb9a9aa2f7b6",
+  "DateTime": "2026-10-31T19:13:04.897Z",
+  "FullHTMLURL": "https://diariodarepublica.pt/dr/home",
+  "TipoDeUtilizador": "",
+  "GUID": ""
+ }
+}

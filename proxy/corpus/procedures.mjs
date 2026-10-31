@@ -19,7 +19,9 @@ export function makeResolver(entries, docs, aliases) {
       || (n.length > 8 ? [...entries.values()].find((e) => plain(e.name).startsWith(n))?.id : null) || null;
   };
   const docByNumber = (type, num) => {
-    const re = new RegExp(`(?<![-\\w])${type}\\s+n\\.?º\\s*${num.replace('/', '\\/')}\\b`, 'i');
+    // Os títulos do PGDL abreviam «Decreto-Lei» para «DL»: aceitam-se as duas formas.
+    const t = /^decreto-lei$/i.test(type) ? '(?:Decreto-Lei|DL)' : type;
+    const re = new RegExp(`(?<![-\\w])${t}\\s+n\\.?º\\s*${num.replace('/', '\\/')}\\b`, 'i');
     return byText.find((d) => re.test(d.text))?.id || null;
   };
 

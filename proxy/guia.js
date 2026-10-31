@@ -557,7 +557,7 @@ export const TOPICS = [
     note: 'A Constituição consagra o direito a um ambiente sadio e ecologicamente equilibrado (art. 66.º). A Lei de Bases do Ambiente (Lei n.º 19/2014) e a lei da ação popular dão instrumentos a cidadãos e associações.',
     rights: [
       'Todos têm direito a um ambiente de vida humano, sadio e ecologicamente equilibrado, e o dever de o defender (CRP, art. 66.º).',
-      'Qualquer pessoa pode pedir informação sobre o ambiente às entidades públicas, sem ter de justificar o interesse (Lei n.º 19/2006).',
+      'Qualquer pessoa pode pedir informação sobre o ambiente às entidades públicas, sem ter de justificar o interesse (Lei n.º 26/2016).',
       'Cidadãos e associações podem propor ação popular para prevenir ou fazer cessar danos ao ambiente (Lei n.º 83/95).',
       'Os projetos com impacto ambiental significativo estão sujeitos a avaliação de impacto ambiental, com consulta pública (Decreto-Lei n.º 151-B/2013).',
     ],
@@ -573,7 +573,7 @@ export const TOPICS = [
       'A ação popular dá legitimidade a quem defende interesses difusos, sem ser diretamente lesado.',
     ],
     entities: ['provedor', 'mp', 'cada'],
-    refs: ['CRP, art. 66.º', 'Lei n.º 19/2014', 'Lei n.º 19/2006', 'Decreto-Lei n.º 151-B/2013', 'Lei n.º 83/95'],
+    refs: ['CRP, art. 66.º', 'Lei n.º 19/2014', 'Lei n.º 26/2016', 'Decreto-Lei n.º 151-B/2013', 'Lei n.º 83/95'],
     expand: 'ambiente avaliação de impacte ambiental ação popular acórdão',
     also: ['provedor'],
   },

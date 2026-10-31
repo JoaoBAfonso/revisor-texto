@@ -17,7 +17,7 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { TOPICS } from '../guia.js';
 import { CATALOG } from './catalog.mjs';
-import { parseFragments } from './dre-parse.mjs';
+import { parseFragments, parseOriginal, clean } from './dre-parse.mjs';
 
 const plain = (s) => s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
 
@@ -97,7 +97,9 @@ async function complete(all) {
   for (const c of cited) {
     const [tipo, num] = c.split('|');
     if ([...all.values()].some((d) => d.numero === num && plain(d.tipo) === plain(tipo))) continue;
-    if (new RegExp(`(?<![-\\w])${tipo}\\s+n\\.?º\\s*${num.replace('/', '\\/')}\\b`, 'i').test(known)) continue;
+    // Os títulos do PGDL abreviam «Decreto-Lei» para «DL»: aceitam-se as duas formas.
+    const t = /^decreto-lei$/i.test(tipo) ? '(?:Decreto-Lei|DL)' : tipo;
+    if (new RegExp(`(?<![-\\w])${t}\\s+n\\.?º\\s*${num.replace('/', '\\/')}\\b`, 'i').test(known)) continue;
     const body = structuredClone(base);
     const v = body.screenData.variables;
     Object.assign(v, { Pesquisa: { List: [`${tipo} ${num}`] }, PesquisaSimplesFiltro: `${tipo} ${num}`, StartIndex: 0, MaxRecordsPerPage: 25, ResultadosPorPaginaId: 25, MostarApenasVigentes: false });
@@ -106,7 +108,12 @@ async function complete(all) {
     if (x?.consolidacaoEstado === 'CONCLUDED' && x.vigencia === 'VIGENTE' && x.DiplomaFragmentadoId) {
       all.set(x.dbId, { dbId: x.dbId, frag: x.DiplomaFragmentadoId, tipo: x.tipo, numero: x.numero, ano: x.ano, designacao: x.designacao || '', title: x.title, emissor: x.emissor || '', data: x.dataPublicacao, temas: ['Citado no guia'] });
       console.log(`+ ${tipo} n.º ${num}`);
-    } else console.log(`? ${tipo} n.º ${num}: ${x ? `sem consolidação em vigor (${x.vigencia}/${x.consolidacaoEstado})` : 'não encontrado'}`);
+    } else if (x?.vigencia === 'VIGENTE') {
+      // Vigente mas sem consolidação no DRE: o texto original do ato é a versão corrente e importa-se tal e qual.
+      const sumario = clean(x.sumario || '').split('\n')[0];
+      all.set(x.dbId, { dbId: x.dbId, frag: '', original: true, tipo: x.tipo, numero: x.numero, ano: x.ano, designacao: x.designacao || sumario, title: x.title, emissor: x.emissor || '', data: x.dataPublicacao, temas: ['Citado no guia'] });
+      console.log(`+ ${tipo} n.º ${num} (texto original, sem consolidação)`);
+    } else console.log(`? ${tipo} n.º ${num}: ${x ? `sem vigência (${x.vigencia})` : 'não encontrado'}`);
     await sleep(150);
   }
 }
@@ -146,16 +153,37 @@ async function list() {
     return [{ d, cat }];
   }).map(({ d, cat }) => ({
     id: cat ? cat.id : `d${d.dbId}`, dbId: d.dbId, frag: d.frag, tipo: d.tipo, numero: d.numero, ano: d.ano, data: d.data, emissor: d.emissor,
+    ...(d.original ? { original: true } : {}),
     name: cat ? cat.name : d.designacao || d.title.replace(/\s+-\s+Di[áa]rio.*$/, '').trim(),
     short: cat ? cat.short : shortOf(d), rank: cat ? cat.rank : rankOf(d), area: cat ? cat.area : areasOf(d), temas: d.temas,
-    url: `https://diariodarepublica.pt/dr/legislacao-consolidada/${SLUG(d.tipo)}/${d.ano}-${d.frag}`,
+    url: d.original
+      ? `https://diariodarepublica.pt/dr/detalhe/${SLUG(d.tipo)}/${String(d.numero).replace('/', '-')}-${d.dbId}`
+      : `https://diariodarepublica.pt/dr/legislacao-consolidada/${SLUG(d.tipo)}/${d.ano}-${d.frag}`,
   })).sort((a, b) => a.rank - b.rank || a.ano - b.ano);
+  // Mantém diplomas de listas anteriores já descarregados (p. ex. os que o complete() acrescentou e que
+  // o filtro do meta.json agora salta): sem isto, refazer a lista expulsava-os do corpus.
+  const prev = existsSync(DOCS) ? JSON.parse(readFileSync(DOCS, 'utf8')) : [];
+  for (const d of prev) if (!docs.some((x) => x.id === d.id) && existsSync(join(OUT, `${d.id}.json`))) docs.push(d);
+  docs.sort((a, b) => a.rank - b.rank || a.ano - b.ano);
   writeFileSync(DOCS, JSON.stringify(docs));
   return docs;
 }
 
 // ── 2. Descarregar ───────────────────────────────────────────────────────────────────────────────
+// Atos vigentes sem consolidação: o texto original (Conteudo_Detalhe) é a versão corrente.
+async function fetchOriginalDoc(d) {
+  const body = template('original');
+  Object.assign(body.screenData.variables, { Tipo: SLUG(d.tipo), Key: `${String(d.numero).replace('/', '-')}-${d.dbId}` });
+  const det = (await call('Legislacao_Conteudos/Conteudo_Detalhe/DataActionGetAllConteudoDetalheData', body)).data?.DetalheConteudo;
+  const parsed = parseOriginal(det?.Texto || '');
+  if (!parsed.arts.length) throw new Error('sem artigos no texto original');
+  const doc = { id: d.id, name: d.name, short: d.short, rank: d.rank, area: d.area, url: d.url, title: d.name, secs: parsed.secs, arts: parsed.arts };
+  writeFileSync(join(OUT, `${d.id}.json`), JSON.stringify(doc));
+  return doc;
+}
+
 async function fetchDoc(d) {
+  if (d.original) return fetchOriginalDoc(d);
   const body = template('detalhe');
   const v = body.screenData.variables;
   Object.assign(v, { DiplomaLegisId: String(d.dbId), DiplomaFragId: String(d.frag), DataSelecionada: new Date().toISOString().slice(0, 10), DataAux: new Date().toISOString().slice(0, 10), FragmentoVersaoId: '0', ELI_HTML: '', Ano: Number(d.ano), Tipo: SLUG(d.tipo), Key: `${d.ano}-${d.frag}` });
