@@ -23,6 +23,12 @@ Só em português: pesquisa uma palavra ou expressão em Público, Expresso, RTP
 
 Seleciona texto e usa **Ligação** (ou Ctrl+K) para lhe associar um endereço (http, https ou e-mail). O texto fica sublinhado a azul sem mostrar o endereço; as ligações acompanham o texto ao editar, entram no histórico de desfazer e são guardadas com o rascunho. Com o cursor numa ligação aparece uma barra com Abrir, Editar e Remover (também Ctrl+clique abre). Colar um endereço sobre texto selecionado cria a ligação. **Copiar com ligações** copia HTML com as ligações para colar noutras aplicações.
 
+## Direito e legislação
+
+Só em português. Para cada palavra, expressão ou citação (ex.: «Lei n.º 2/99», «artigo 180 do Código Penal») o proxy (rota `/direito?q=&sources=`) **interpreta** o termo: identifica áreas do direito com interesse jornalístico (honra, direito de resposta, imagem, dados pessoais, segredo de justiça, sigilo profissional, direitos de autor, corrupção, menores, etc.), mostra uma nota e os diplomas relevantes, e **pesquisa** em Diário da República, PGDL, tribunais (DGSI), Tribunal Constitucional, ERC e CNPD. Cada resultado abre num popup com o excerto, ligação à fonte e o botão de ligar a seleção. A interpretação é orientativa e não substitui aconselhamento jurídico.
+
+O Bing não respeita o filtro de sites a partir dos IPs da Cloudflare, por isso a pesquisa usa o Google via [Serper.dev](https://serper.dev) (plano gratuito) quando o segredo existe: `cd proxy; npx.cmd wrangler secret put SERPER_API_KEY`. Sem a chave, as notas e diplomas aparecem na mesma, mas os resultados da pesquisa podem vir vazios.
+
 ## Tradução (DeepL)
 
 Traduz a seleção, ou o texto todo, entre português e inglês (Reino Unido ou EUA). O DeepL exige uma chave de API que não pode ficar numa página pública, por isso o pedido passa pelo proxy, que guarda a chave.

@@ -593,20 +593,25 @@
   let doubtsSeq = 0;
   const newsEl = $('news'), newsForm = $('newsForm'), newsQuery = $('newsQuery');
   const newsBtn = $('newsBtn'), newsResult = $('newsResult'), newsSites = $('newsSites');
+  const lawEl = $('law'), lawForm = $('lawForm'), lawQuery = $('lawQuery');
+  const lawBtn = $('lawBtn'), lawResult = $('lawResult'), lawSources = $('lawSources');
 
   function updateDoubts() {
     const pt = langEl.value === 'pt-PT';
     doubtsEl.hidden = !pt;
     newsEl.hidden = !pt;
+    lawEl.hidden = !pt;
     doubtsBtn.disabled = !doubtsQuery.value.trim();
     newsBtn.disabled = !newsQuery.value.trim();
+    lawBtn.disabled = !lawQuery.value.trim();
   }
   doubtsQuery.addEventListener('input', updateDoubts);
   newsQuery.addEventListener('input', updateDoubts);
+  lawQuery.addEventListener('input', updateDoubts);
   document.addEventListener('selectionchange', () => {
     if (document.activeElement !== textEl) return;
     const sel = textEl.value.slice(textEl.selectionStart, textEl.selectionEnd).trim();
-    if (sel && sel.length <= 80 && !/\n/.test(sel)) { doubtsQuery.value = sel; newsQuery.value = sel; updateDoubts(); }
+    if (sel && sel.length <= 80 && !/\n/.test(sel)) { doubtsQuery.value = sel; newsQuery.value = sel; lawQuery.value = sel; updateDoubts(); }
   });
 
   const doubtsMessage = (text, isError) => {
@@ -849,6 +854,124 @@
       if (seq === newsSeq) renderNews(data);
     } catch {
       if (seq === newsSeq) newsMessage('Não foi possível pesquisar as notícias. Tenta novamente.', true);
+    }
+  };
+
+  // Direito e legislação: o proxy interpreta o termo (área do direito, diplomas) e pesquisa em fontes oficiais.
+  const lawCache = new Map();
+  let lawSeq = 0;
+  const lawMessage = (text, isError) => {
+    lawResult.className = isError ? 'error' : '';
+    lawResult.textContent = text;
+  };
+
+  function openLaw(r) {
+    answerTitle.textContent = r.title;
+    answerSource.textContent = `Abrir em ${r.source}`;
+    answerSource.href = r.url;
+    answerBody.className = 'dialog-body';
+    setupInsert(r.url);
+    const meta = document.createElement('p');
+    meta.className = 'meta';
+    meta.textContent = [r.kind, r.source].join(' · ');
+    const box = document.createElement('div');
+    box.className = 'question';
+    const p = document.createElement('p');
+    p.textContent = r.description || 'Sem excerto disponível. Abre a fonte para ler o documento.';
+    box.append(p);
+    const note = document.createElement('p');
+    note.className = 'meta';
+    note.textContent = 'Excerto devolvido pelo motor de pesquisa. Confirma sempre o texto em vigor na fonte oficial.';
+    answerBody.replaceChildren(meta, box, note);
+    if (!answerDialog.open) answerDialog.showModal();
+    answerBody.scrollTop = 0;
+  }
+
+  function renderLaw(data) {
+    lawResult.className = '';
+    lawResult.replaceChildren();
+    const { citation, topics } = data.interpretation || {};
+
+    if (citation) {
+      const c = document.createElement('p');
+      c.className = 'law-cite';
+      c.textContent = `Interpretado como citação: ${citation.label}`;
+      lawResult.append(c);
+    }
+    for (const t of topics || []) {
+      const card = document.createElement('div');
+      card.className = 'law-topic';
+      const h = document.createElement('h3');
+      h.textContent = t.area;
+      const n = document.createElement('p');
+      n.textContent = t.note;
+      const refs = document.createElement('ul');
+      for (const ref of t.refs) {
+        const li = document.createElement('li');
+        li.textContent = ref;
+        refs.append(li);
+      }
+      card.append(h, n, refs);
+      lawResult.append(card);
+    }
+
+    if (!data.results.length) {
+      const m = document.createElement('p');
+      m.textContent = `Sem resultados diretos nas fontes escolhidas para «${data.term}».`;
+      lawResult.append(m);
+    } else {
+      const list = document.createElement('ul');
+      list.className = 'doubt-list';
+      for (const r of data.results) {
+        const li = document.createElement('li');
+        const b = document.createElement('button');
+        b.type = 'button'; b.className = 'link';
+        b.textContent = r.title;
+        b.onclick = () => openLaw(r);
+        const meta = document.createElement('span');
+        meta.className = 'meta';
+        meta.textContent = [r.kind, r.source, r.related ? 'área relacionada' : ''].filter(Boolean).join(' · ');
+        li.append(b, meta);
+        list.append(li);
+      }
+      lawResult.append(list);
+    }
+
+    const src = document.createElement('p');
+    src.className = 'src';
+    src.append(`Interpretação orientativa, não substitui aconselhamento jurídico. Pesquisa via ${data.provider || 'motor de pesquisa'}. `);
+    if (data.failed?.length) src.append('Falhou a pesquisa. ');
+    if (data.moreUrl) {
+      const a = document.createElement('a');
+      a.href = data.moreUrl; a.target = '_blank'; a.rel = 'noopener noreferrer';
+      a.textContent = 'Ver mais no Google';
+      src.append(a);
+    }
+    lawResult.append(src);
+  }
+
+  lawForm.onsubmit = async (e) => {
+    e.preventDefault();
+    const term = lawQuery.value.trim();
+    const api = window.REVISOR_CONFIG?.definitionApi;
+    const sources = [...lawSources.querySelectorAll('input:checked')].map((i) => i.value);
+    if (!term) return;
+    if (!api) { lawMessage('Proxy não configurado.', true); return; }
+    if (!sources.length) { lawMessage('Escolhe pelo menos uma fonte.', true); return; }
+    const seq = ++lawSeq;
+    lawMessage('A interpretar e a pesquisar…');
+    const key = `${term.toLowerCase()}|${sources.join(',')}`;
+    try {
+      let data = lawCache.get(key);
+      if (!data) {
+        const res = await fetch(`${api}/direito?q=${encodeURIComponent(term)}&sources=${sources.join(',')}`);
+        if (!res.ok) throw new Error();
+        data = await res.json();
+        if (data.results.length) lawCache.set(key, data);
+      }
+      if (seq === lawSeq) renderLaw(data);
+    } catch {
+      if (seq === lawSeq) lawMessage('Não foi possível pesquisar. Tenta novamente.', true);
     }
   };
 

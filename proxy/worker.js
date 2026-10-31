@@ -1,10 +1,12 @@
-// Cloudflare Worker:
+﻿// Cloudflare Worker:
 //   GET  /?word=casa   -> JSON com a definição obtida no Priberam.
 //   POST /translate    -> tradução via DeepL (a chave DEEPL_API_KEY fica só aqui, como segredo).
 //   GET  /duvidas?q=   -> dúvidas do consultório do Ciberdúvidas.
+//   GET  /direito?q=   -> interpretação jurídica e pesquisa em fontes oficiais (chave opcional SERPER_API_KEY).
 import { lookupPriberam } from './priberam.js';
 import { searchCiberduvidas, fetchAnswer } from './ciberduvidas.js';
 import { searchNews, fetchArticle, NEWS_SITES } from './noticias.js';
+import { searchLaw, LAW_SOURCES } from './direito.js';
 
 // Origens autorizadas a usar o proxy. Substituir pelo endereço do GitHub Pages.
 const ALLOWED_ORIGINS = ['https://joaobafonso.github.io', 'http://localhost:8765', 'http://localhost:8000'];
@@ -98,6 +100,19 @@ export default {
         return json(result, 200, { ...headers, 'Cache-Control': cache });
       } catch {
         return json({ error: 'Não foi possível pesquisar notícias' }, 502, headers);
+      }
+    }
+
+    if (url.pathname === '/direito') {
+      const q = (url.searchParams.get('q') || '').trim();
+      if (!q || q.length > 80) return json({ error: 'Pesquisa inválida' }, 400, headers);
+      const sources = (url.searchParams.get('sources') || '').split(',').filter((k) => LAW_SOURCES[k]);
+      try {
+        const result = await searchLaw(q, sources.length ? sources : Object.keys(LAW_SOURCES), env);
+        const cache = result.results.length && !result.failed.length ? 'public, max-age=3600' : 'no-store';
+        return json(result, 200, { ...headers, 'Cache-Control': cache });
+      } catch {
+        return json({ error: 'Não foi possível pesquisar legislação' }, 502, headers);
       }
     }
 
