@@ -8,7 +8,10 @@
 </head>
 <body>
   <header>
-    <h1>Revisor de Texto</h1>
+    <a class="brand" href="./" aria-label="Revisor — revisor de texto">
+      <svg class="smoke" viewBox="0 0 40 56" aria-hidden="true"><path d="M14 54c-8-6-8-13 0-19s8-12 0-18 0-12 10-15c-6 5-5 9 2 14s7 12 0 18-6 13 4 20z"/></svg>
+      <span class="wordmark">REVISOR</span>
+    </a>
     <div class="controls">
       <label>Idioma
         <select id="lang">
@@ -16,9 +19,10 @@
           <option value="en">Inglês (US + UK)</option>
         </select>
       </label>
-      <button id="undo" type="button" disabled>Desfazer última correção</button>
+      <button id="undo" type="button" disabled title="Ctrl+Z">Desfazer</button>
     </div>
   </header>
+  <div class="strap">Verificação ortográfica independente. Sem anúncios, sem rasto.</div>
 
   <main>
     <section class="editor">

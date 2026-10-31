@@ -8,6 +8,10 @@
   const factoryPromise = window.HunspellAsm.loadModule();
   const spellers = {};
   const undoStack = [];
+  const MAX_UNDO = 200;
+  let snap = null; // estado do texto no último ponto de referência
+  let typing = false;
+  let typingTimer = null;
   let speller = null;
   let timer = null;
   let issues = [];
@@ -81,6 +85,9 @@
           suggestions.push({ text: s });
         }
       }
+      // Sugestões que só diferem no acento (nao → não) vêm primeiro.
+      const base = stripAccents(word);
+      suggestions.sort((a, b) => (stripAccents(b.text) === base) - (stripAccents(a.text) === base));
       return { type: 'error', suggestions: suggestions.slice(0, 5) };
     }
     // Correta só em algumas variantes: sugere o equivalente nas restantes.
@@ -98,17 +105,87 @@
     };
   }
 
+  const stripAccents = (s) => s.normalize('NFD').replace(/\p{M}/gu, '').toLowerCase();
+  const isKnown = (w) => personal.has(w.toLowerCase()) || speller.some((d) => correctIn(d, w));
+
+  // Pequenos erros que o dicionário não apanha: símbolos/acentos por engano, repetições e espaçamento.
+  const DEAD = { '´': '\u0301', '`': '\u0300', '^': '\u0302', '~': '\u0303', '¨': '\u0308' };
+  const ACCENTED = { a: 'áàâã', e: 'éê', i: 'í', o: 'óôõ', u: 'ú', c: 'ç' };
+  const STRAY_RE = /(?<![\p{L}\p{M}\p{N}])([\p{L}\p{M}]*)([+=^~´`¨|\\]+)([\p{L}\p{M}]+(?:['’-][\p{L}\p{M}]+)*)/gu;
+  const DIGITS_RE = /(?<![\p{L}\p{M}\p{N}])[\p{L}\p{M}]+\p{N}+[\p{L}\p{M}]+(?![\p{N}])/gu;
+  const REPEAT_RE = /(?<![\p{L}\p{M}\p{N}])([\p{L}\p{M}]+)([ \t]+|\r?\n)\1(?![\p{L}\p{M}\p{N}'’-])/giu;
+  const REPEAT_OK = { en: new Set(['that', 'had']), 'pt-PT': new Set() };
+
+  function strayCandidates(prefix, symbols, rest) {
+    const first = rest[0], tail = rest.slice(1);
+    const out = [];
+    if (symbols.length === 1 && DEAD[symbols]) {
+      const composed = (first + DEAD[symbols]).normalize('NFC');
+      if (composed.length === 1) out.push(prefix + composed + tail);
+    } else if (langEl.value === 'pt-PT') {
+      const lower = first.toLowerCase();
+      for (const v of ACCENTED[lower] || '') out.push(prefix + (first === lower ? v : v.toUpperCase()) + tail);
+    }
+    const valid = out.filter(isKnown);
+    valid.push(prefix + rest);
+    return [...new Set(valid)];
+  }
+
+  function findTypos(text) {
+    const out = [];
+    const push = (start, end, display, note, suggestions) => {
+      const word = text.slice(start, end);
+      const key = `typo:${display}:${word.toLowerCase()}`;
+      if (ignored.has(key)) return;
+      out.push({ type: 'typo', word, display, key, start, end, note, suggestions });
+    };
+    for (const m of text.matchAll(STRAY_RE)) {
+      const [token, prefix, symbols, rest] = m;
+      const suggestions = strayCandidates(prefix, symbols, rest).map((t) => ({ text: t }));
+      push(m.index, m.index + token.length, token, `Símbolo “${symbols}” por engano? Pode ser um acento mal escrito.`, suggestions);
+    }
+    for (const m of text.matchAll(DIGITS_RE)) {
+      const plain = m[0].replace(/\p{N}+/gu, '');
+      push(m.index, m.index + m[0].length, m[0], 'Números no meio de uma palavra.', isKnown(plain) ? [{ text: plain }] : []);
+    }
+    for (const m of text.matchAll(REPEAT_RE)) {
+      if (REPEAT_OK[langEl.value === 'en' ? 'en' : 'pt-PT'].has(m[1].toLowerCase())) continue;
+      push(m.index + m[1].length, m.index + m[0].length, `${m[1]} ${m[1]}`, 'Palavra repetida.', [{ text: '', caption: 'Remover repetição' }]);
+    }
+    for (const m of text.matchAll(/(?<=\S)[ \t]{2,}(?=\S)/g)) {
+      push(m.index, m.index + m[0].length, 'espaços a mais', 'Mais de um espaço seguido.', [{ text: ' ', caption: 'Um só espaço' }]);
+    }
+    for (const m of text.matchAll(/(?<=\S)[ \t]+(?=[,;.!?:](?!\p{N}))/gu)) {
+      push(m.index, m.index + m[0].length, 'espaço antes da pontuação', 'Espaço antes de um sinal de pontuação.', [{ text: '', caption: 'Remover espaço' }]);
+    }
+    for (const m of text.matchAll(/(?<=\p{L})[,;](?=\p{L})/gu)) {
+      push(m.index, m.index + 1, `${m[0]} sem espaço`, 'Falta um espaço depois do sinal.', [{ text: `${m[0]} `, caption: `Acrescentar espaço` }]);
+    }
+    for (const m of text.matchAll(/(?<=\p{Ll})\.(?=\p{Lu}\p{Ll})/gu)) {
+      push(m.index, m.index + 1, 'ponto sem espaço', 'Falta um espaço depois do ponto.', [{ text: '. ', caption: 'Acrescentar espaço' }]);
+    }
+    for (const m of text.matchAll(/([,;:])\1+/g)) {
+      push(m.index, m.index + m[0].length, `${m[0]} repetido`, 'Pontuação repetida.', [{ text: m[1], caption: `Só “${m[1]}”` }]);
+    }
+    return out;
+  }
+
   function findIssues(text) {
+    const typos = findTypos(text).sort((a, b) => a.start - b.start);
+    const kept = [];
+    for (const t of typos) if (!kept.length || t.start >= kept[kept.length - 1].end) kept.push(t);
     const found = [];
     for (const m of text.matchAll(WORD_RE)) {
       const word = m[0];
       if (word.length < 2) continue;
+      const start = m.index, end = start + word.length;
+      if (kept.some((t) => start < t.end && end > t.start)) continue;
       if (ignored.has(word.toLowerCase())) continue;
       const result = classify(word.replace(/’/g, "'"));
       if (!result) continue;
-      found.push({ word, start: m.index, end: m.index + word.length, ...result });
+      found.push({ word, start, end, ...result });
     }
-    return found;
+    return [...kept, ...found].sort((a, b) => a.start - b.start);
   }
 
   const esc = (s) => s.replace(/[&<>]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
@@ -118,7 +195,7 @@
     let html = '', pos = 0;
     issues.forEach((it, i) => {
       html += esc(text.slice(pos, it.start));
-      const cls = [it.type === 'variant' ? 'variant' : '', i === activeIndex ? 'active' : ''].filter(Boolean).join(' ');
+      const cls = [it.type === 'error' ? '' : it.type, i === activeIndex ? 'active' : ''].filter(Boolean).join(' ');
       html += `<mark${cls ? ` class="${cls}"` : ''}>${esc(it.word)}</mark>`;
       pos = it.end;
     });
@@ -135,7 +212,7 @@
   function contextOf(it) {
     const text = textEl.value;
     const a = Math.max(0, it.start - 25), b = Math.min(text.length, it.end + 25);
-    return `${a > 0 ? '…' : ''}${text.slice(a, it.start)}[${it.word}]${text.slice(it.end, b)}${b < text.length ? '…' : ''}`
+    return `${a > 0 ? '…' : ''}${text.slice(a, it.start)}[${it.display ?? it.word}]${text.slice(it.end, b)}${b < text.length ? '…' : ''}`
       .replace(/\s+/g, ' ');
   }
 
@@ -153,7 +230,7 @@
       const li = document.createElement('li');
       const w = document.createElement('span');
       w.className = 'word';
-      w.textContent = it.word;
+      w.textContent = it.display ?? it.word;
       li.className = it.type;
       const ctx = document.createElement('span');
       ctx.className = 'ctx';
@@ -162,27 +239,31 @@
       actions.className = 'actions';
 
       let note = null;
-      if (it.type === 'variant') {
+      if (it.type === 'variant' || it.note) {
         note = document.createElement('span');
         note.className = 'note';
-        note.textContent = `Variante: correta em ${it.okLabels.join(', ')}; não aceite em ${it.missingLabels.join(', ')}.`;
+        note.textContent = it.note ||
+          `Variante: correta em ${it.okLabels.join(', ')}; não aceite em ${it.missingLabels.join(', ')}.`;
       }
 
       for (const s of it.suggestions) {
         const b = document.createElement('button');
         b.className = 'sug';
-        b.textContent = s.label ? `${s.text} (${s.label})` : s.text;
+        b.textContent = s.caption || (s.label ? `${s.text} (${s.label})` : s.text);
         b.title = s.label ? `Mudar para a variante ${s.label}` : 'Substituir por esta sugestão';
         b.onclick = () => applySuggestion(i, s.text);
         actions.append(b);
       }
       const ign = document.createElement('button');
       ign.textContent = 'Ignorar';
-      ign.onclick = () => { ignored.add(it.word.toLowerCase()); check(); };
-      const add = document.createElement('button');
-      add.textContent = 'Adicionar ao dicionário';
-      add.onclick = () => { personal.add(it.word.toLowerCase()); savePersonal(); check(); };
-      actions.append(ign, add);
+      ign.onclick = () => { ignored.add(it.key ?? it.word.toLowerCase()); check(); };
+      actions.append(ign);
+      if (it.type !== 'typo') {
+        const add = document.createElement('button');
+        add.textContent = 'Adicionar ao dicionário';
+        add.onclick = () => { personal.add(it.word.toLowerCase()); savePersonal(); check(); };
+        actions.append(add);
+      }
 
       li.append(w, ctx);
       if (note) li.append(note);
@@ -224,12 +305,31 @@
     renderPersonal();
   }
 
+  const state = () => ({ text: textEl.value, lang: langEl.value });
+  function pushUndo(s) {
+    undoStack.push(s);
+    if (undoStack.length > MAX_UNDO) undoStack.shift();
+    undoBtn.disabled = false;
+  }
+  function endTyping() {
+    clearTimeout(typingTimer);
+    typing = false;
+    snap = state();
+  }
+  // Qualquer alteração programática (sugestão, tradução…) fica registada como um passo.
+  function recordChange(change) {
+    endTyping();
+    pushUndo(snap);
+    change();
+    snap = state();
+  }
+
   function applySuggestion(i, suggestion) {
     const it = issues[i];
-    const before = textEl.value;
-    undoStack.push({ text: before, lang: langEl.value });
-    textEl.value = before.slice(0, it.start) + suggestion + before.slice(it.end);
-    undoBtn.disabled = false;
+    recordChange(() => {
+      const before = textEl.value;
+      textEl.value = before.slice(0, it.start) + suggestion + before.slice(it.end);
+    });
     check();
   }
 
@@ -299,7 +399,13 @@
     if (lang !== langEl.value) setLanguage(lang);
   }
 
-  textEl.addEventListener('input', () => { renderBackdrop(); autoDetectLanguage(); scheduleCheck(); });
+  textEl.addEventListener('input', () => {
+    // Cada rajada de escrita conta como um só passo para desfazer.
+    if (!typing) { typing = true; pushUndo(snap); }
+    clearTimeout(typingTimer);
+    typingTimer = setTimeout(() => { typing = false; snap = state(); }, 800);
+    renderBackdrop(); autoDetectLanguage(); scheduleCheck();
+  });
   textEl.addEventListener('scroll', syncScroll);
 
   // Definição de palavras: português via proxy (Priberam), inglês direto do Wiktionary.
@@ -479,10 +585,10 @@
       return;
     }
     const translated = trResult.textContent;
-    undoStack.push({ text: current, lang: langEl.value });
-    undoBtn.disabled = false;
     const replacedAll = trRange.start === 0 && trRange.end === current.length;
-    textEl.value = current.slice(0, trRange.start) + translated + current.slice(trRange.end);
+    recordChange(() => {
+      textEl.value = current.slice(0, trRange.start) + translated + current.slice(trRange.end);
+    });
     const targetLang = trTarget.value.startsWith('en') ? 'en' : 'pt-PT';
     trRange = null;
     trActions.hidden = true;
@@ -493,6 +599,7 @@
     } else {
       check();
     }
+    snap = state();
     updateTranslateButton();
   };
   ['select', 'keyup', 'mouseup', 'input'].forEach((ev) => textEl.addEventListener(ev, updateTranslateButton));
@@ -500,25 +607,37 @@
   renderTargets();
   updateTranslateButton();
 
-  undoBtn.onclick = () => {
-    if (!undoStack.length) return;
-    const previous = undoStack.pop();
-    textEl.value = previous.text;
+  function undo() {
+    endTyping();
+    let previous;
+    do { previous = undoStack.pop(); } while (previous && previous.text === textEl.value && previous.lang === langEl.value);
     undoBtn.disabled = !undoStack.length;
+    if (!previous) return;
+    textEl.value = previous.text;
+    snap = previous;
     if (previous.lang !== langEl.value) setLanguage(previous.lang);
     else check();
     updateTranslateButton();
-  };
+  }
+  undoBtn.onclick = undo;
+  textEl.addEventListener('keydown', (e) => {
+    if (!(e.ctrlKey || e.metaKey)) return;
+    const k = e.key.toLowerCase();
+    if (k === 'z' && !e.shiftKey) { e.preventDefault(); undo(); }
+    else if (k === 'y' || (k === 'z' && e.shiftKey)) e.preventDefault(); // sem refazer: o histórico nativo ficou desfasado
+  });
   langEl.onchange = () => {
     autoDetect = false;
     autoDetected = false;
     setLanguage(langEl.value);
+    if (!typing) snap = state();
   };
 
   const savedLang = store.get('lang', 'pt-PT');
   langEl.value = LANGUAGES[savedLang] ? savedLang : 'pt-PT';
   textEl.value = store.get('draft', '');
   autoDetect = !textEl.value.trim();
+  snap = state();
   loadPersonal(langEl.value);
   renderPersonal();
   renderTargets();
