@@ -75,7 +75,14 @@ aside { position: sticky; top: var(--s4); max-height: calc(100vh - 2 * var(--s4)
 .doubt-list a { font-weight: 700; }
 .doubt-list p { margin: var(--s1) 0; color: var(--muted); font-size: .9rem; }
 .doubt-list .meta { font-size: .8rem; color: var(--muted); }
-#doubtsResult .src { font-size: .8rem; margin: var(--s3) 0 0; }
+#doubtsResult .src, #newsResult .src { font-size: .8rem; margin: var(--s3) 0 0; }
+#newsResult { font-size: .95rem; line-height: 1.6; }
+#newsResult.error { color: var(--red); }
+.doubts[hidden], .news[hidden] { display: none; }
+.news-sites { display: flex; flex-wrap: wrap; gap: var(--s2) var(--s4); margin: 0 0 var(--s4); padding: 0; border: 0; font-size: .85rem; }
+.news-sites legend { padding: 0; margin-bottom: var(--s2); font-weight: 700; text-transform: uppercase; letter-spacing: .06em; font-size: .75rem; }
+.news-sites label { display: inline-flex; align-items: center; gap: var(--s1); cursor: pointer; }
+.doubt-list .link { display: block; padding: 0; margin-bottom: var(--s1); border: 0; background: none; min-height: 0; font: inherit; font-weight: 700; text-align: left; text-transform: none; letter-spacing: 0; color: var(--ink); text-decoration: underline; text-decoration-color: var(--orange); text-decoration-thickness: 2px; cursor: pointer; }
 
 #answerDialog { width: min(720px, calc(100vw - var(--s5))); max-height: calc(100vh - var(--s6)); padding: 0; border: 0; background: var(--paper, #faf8f7); color: var(--ink); box-shadow: 0 0 0 4px var(--ink); flex-direction: column; }
 #answerDialog[open] { display: flex; }

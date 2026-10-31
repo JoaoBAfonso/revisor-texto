@@ -15,6 +15,10 @@ Verificador ortográfico (português de Portugal e inglês US + UK) que corre in
 
 Só em português: pesquisa a seleção (ou um termo escrito) no consultório do Ciberdúvidas e lista as 10 dúvidas mais relevantes, com ligação para a resposta. Passa pelo proxy (rota `/duvidas?q=`).
 
+## Notícias
+
+Só em português: pesquisa uma palavra ou expressão em Público, Expresso, RTP, SIC Notícias, TVI, Correio da Manhã e A Mensagem (sites à escolha). Os resultados vêm do RSS do Bing Notícias, via proxy (rota `/noticias?q=&sites=`), e ao clicar abre um popup com título, data e o resumo, com ligação para o artigo. Não se mostra o texto completo das notícias.
+
 ## Tradução (DeepL)
 
 Traduz a seleção, ou o texto todo, entre português e inglês (Reino Unido ou EUA). O DeepL exige uma chave de API que não pode ficar numa página pública, por isso o pedido passa pelo proxy, que guarda a chave.

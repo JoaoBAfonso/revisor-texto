@@ -548,16 +548,22 @@
   const doubtsBtn = $('doubtsBtn'), doubtsResult = $('doubtsResult');
   const doubtsCache = new Map();
   let doubtsSeq = 0;
+  const newsEl = $('news'), newsForm = $('newsForm'), newsQuery = $('newsQuery');
+  const newsBtn = $('newsBtn'), newsResult = $('newsResult'), newsSites = $('newsSites');
 
   function updateDoubts() {
-    doubtsEl.hidden = langEl.value !== 'pt-PT';
+    const pt = langEl.value === 'pt-PT';
+    doubtsEl.hidden = !pt;
+    newsEl.hidden = !pt;
     doubtsBtn.disabled = !doubtsQuery.value.trim();
+    newsBtn.disabled = !newsQuery.value.trim();
   }
   doubtsQuery.addEventListener('input', updateDoubts);
+  newsQuery.addEventListener('input', updateDoubts);
   document.addEventListener('selectionchange', () => {
     if (document.activeElement !== textEl) return;
     const sel = textEl.value.slice(textEl.selectionStart, textEl.selectionEnd).trim();
-    if (sel && sel.length <= 80 && !/\n/.test(sel)) { doubtsQuery.value = sel; updateDoubts(); }
+    if (sel && sel.length <= 80 && !/\n/.test(sel)) { doubtsQuery.value = sel; newsQuery.value = sel; updateDoubts(); }
   });
 
   const doubtsMessage = (text, isError) => {
@@ -595,6 +601,7 @@
     const api = window.REVISOR_CONFIG?.definitionApi;
     const seq = ++answerSeq;
     answerTitle.textContent = r.title;
+    answerSource.textContent = 'Ver no Ciberdúvidas';
     answerSource.href = r.url;
     answerBody.className = 'dialog-body';
     answerBody.textContent = 'A carregar a resposta…';
@@ -668,6 +675,86 @@
       if (seq === doubtsSeq) renderDoubts(data);
     } catch {
       if (seq === doubtsSeq) doubtsMessage('Não foi possível consultar o Ciberdúvidas. Tenta novamente.', true);
+    }
+  };
+
+  // Notícias (só português): pesquisa via proxy; o popup mostra título, data e resumo, com ligação ao artigo.
+  const newsCache = new Map();
+  let newsSeq = 0;
+  const fmtDate = (iso) => (iso ? new Date(iso).toLocaleDateString('pt-PT', { day: 'numeric', month: 'long', year: 'numeric' }) : '');
+  const newsMessage = (text, isError) => {
+    newsResult.className = isError ? 'error' : '';
+    newsResult.textContent = text;
+  };
+
+  function openNews(r) {
+    answerTitle.textContent = r.title;
+    answerSource.textContent = 'Ler no site';
+    answerSource.href = r.url;
+    answerBody.className = 'dialog-body';
+    const meta = document.createElement('p');
+    meta.className = 'meta';
+    meta.textContent = [r.source, fmtDate(r.date)].filter(Boolean).join(' · ');
+    const box = document.createElement('div');
+    box.className = 'question';
+    const p = document.createElement('p');
+    p.textContent = r.description || 'Sem resumo disponível. Abre a notícia no site original para a ler.';
+    box.append(p);
+    answerBody.replaceChildren(meta, box);
+    if (!answerDialog.open) answerDialog.showModal();
+    answerBody.scrollTop = 0;
+  }
+
+  function renderNews(data) {
+    newsResult.className = '';
+    newsResult.replaceChildren();
+    if (!data.results.length) {
+      newsMessage(`Sem notícias encontradas para «${data.term}».`);
+      return;
+    }
+    const list = document.createElement('ul');
+    list.className = 'doubt-list';
+    for (const r of data.results) {
+      const li = document.createElement('li');
+      const b = document.createElement('button');
+      b.type = 'button'; b.className = 'link';
+      b.textContent = r.title;
+      b.onclick = () => openNews(r);
+      const meta = document.createElement('span');
+      meta.className = 'meta';
+      meta.textContent = [r.source, fmtDate(r.date)].filter(Boolean).join(' · ');
+      li.append(b, meta);
+      list.append(li);
+    }
+    const src = document.createElement('p');
+    src.className = 'src';
+    src.textContent = `Resultados do Bing Notícias para «${data.term}».`;
+    if (data.failed?.length) src.textContent += ' Alguns sites não responderam.';
+    newsResult.append(list, src);
+  }
+
+  newsForm.onsubmit = async (e) => {
+    e.preventDefault();
+    const term = newsQuery.value.trim();
+    const api = window.REVISOR_CONFIG?.definitionApi;
+    const sites = [...newsSites.querySelectorAll('input:checked')].map((i) => i.value);
+    if (!term) return;
+    if (!api) { newsMessage('Proxy não configurado.', true); return; }
+    if (!sites.length) { newsMessage('Escolhe pelo menos um site.', true); return; }
+    const seq = ++newsSeq;
+    newsMessage('A pesquisar nas notícias…');
+    const key = `${term.toLowerCase()}|${sites.join(',')}`;
+    try {
+      let data = newsCache.get(key);
+      if (!data) {
+        const res = await fetch(`${api}/noticias?q=${encodeURIComponent(term)}&sites=${sites.join(',')}`);
+        if (!res.ok) throw new Error();
+        data = await res.json();
+        newsCache.set(key, data);
+      }
+      if (seq === newsSeq) renderNews(data);
+    } catch {
+      if (seq === newsSeq) newsMessage('Não foi possível pesquisar as notícias. Tenta novamente.', true);
     }
   };
 

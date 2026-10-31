@@ -5,7 +5,7 @@ const BASE = 'https://ciberduvidas.iscte-iul.pt';
 const UA = 'Mozilla/5.0 (compatible; RevisorDeTexto/1.0)';
 const ENTITIES = { amp: '&', lt: '<', gt: '>', quot: '"', apos: "'", nbsp: ' ', '#x2F': '/' };
 
-function decode(s) {
+export function decode(s) {
   return s.replace(/&(#x?[0-9a-f]+|[a-z]+);/gi, (m, e) => {
     if (e[0] === '#') {
       const code = e[1].toLowerCase() === 'x' ? parseInt(e.slice(2), 16) : parseInt(e.slice(1), 10);
@@ -16,7 +16,7 @@ function decode(s) {
 }
 
 // O site entrega alguns títulos com entidades duplamente codificadas (&amp;lt;i&amp;gt;).
-function toText(html) {
+export function toText(html) {
   const once = decode(html);
   const noTags = once.replace(/<[^>]+>/g, '');
   return decode(noTags).replace(/<[^>]+>/g, '').replace(/\s+/g, ' ').trim();

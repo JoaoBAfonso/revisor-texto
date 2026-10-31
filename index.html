@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Revisor de Texto</title>
-  <link rel="stylesheet" href="style.css?v=7">
+  <link rel="stylesheet" href="style.css?v=8">
 </head>
 <body>
   <header>
@@ -51,6 +51,27 @@
         <div id="doubtsResult" aria-live="polite">Seleciona uma palavra ou expressão no texto, ou escreve-a acima, para ver dúvidas semelhantes já respondidas (só português).</div>
       </section>
 
+      <section class="doubts news" id="news">
+        <div class="def-head">
+          <h2>Notícias</h2>
+        </div>
+        <form class="doubts-form" id="newsForm">
+          <input id="newsQuery" type="search" maxlength="80" placeholder="Palavra ou expressão…" aria-label="Palavra ou expressão a pesquisar em sites de notícias" autocomplete="off">
+          <button id="newsBtn" type="submit" disabled>Pesquisar</button>
+        </form>
+        <fieldset class="news-sites" id="newsSites">
+          <legend>Sites</legend>
+          <label><input type="checkbox" value="publico" checked> Público</label>
+          <label><input type="checkbox" value="expresso" checked> Expresso</label>
+          <label><input type="checkbox" value="rtp" checked> RTP</label>
+          <label><input type="checkbox" value="sic" checked> SIC</label>
+          <label><input type="checkbox" value="tvi" checked> TVI</label>
+          <label><input type="checkbox" value="cm" checked> CM</label>
+          <label><input type="checkbox" value="mensagem" checked> A Mensagem</label>
+        </fieldset>
+        <div id="newsResult" aria-live="polite">Vê como uma palavra ou expressão é usada em notícias recentes (só português).</div>
+      </section>
+
       <section class="translation">
         <div class="def-head">
           <h2>Tradução (DeepL)</h2>
@@ -89,12 +110,12 @@
   </dialog>
 
   <footer>
-    O texto é verificado no teu browser e nunca sai do teu computador. A palavra que escolheres definir é enviada ao Priberam (através do proxy) ou ao Wiktionary. O termo que pesquisares no Ciberdúvidas é enviado a esse site (através do proxy). O texto que mandares traduzir é enviado ao DeepL (através do proxy).
+    O texto é verificado no teu browser e nunca sai do teu computador. A palavra que escolheres definir é enviada ao Priberam (através do proxy) ou ao Wiktionary. O termo que pesquisares no Ciberdúvidas ou em notícias é enviado a esses sites (através do proxy, e no caso das notícias, via Bing Notícias). O texto que mandares traduzir é enviado ao DeepL (através do proxy).
     Dicionários: LibreOffice/wooorm (LGPL-3.0 ou MPL-2.0).
   </footer>
 
   <script src="config.js"></script>
   <script src="vendor/hunspell.js"></script>
-  <script src="app.js?v=6"></script>
+  <script src="app.js?v=8"></script>
 </body>
 </html>
