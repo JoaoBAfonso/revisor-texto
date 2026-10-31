@@ -3,7 +3,7 @@ import { tokens } from './proxy/corpus/tokens.mjs';
 
 const root = document.getElementById('brain');
 const DATA = 'data/lei';
-const REV = '3';
+const REV = '4';
 
 const h = (tag, props, ...kids) => {
   const el = document.createElement(tag);
@@ -95,7 +95,7 @@ function diplomasFor(q) {
   return meta.docs.filter((d) => {
     const own = new Set(tokens(`${d.name} ${d.short} ${d.title}`));
     return [...terms].every((t) => own.has(t));
-  });
+  }).sort((a, b) => a.rank - b.rank).slice(0, 40);
 }
 
 // "artigo 65 CRP", "65.º do CRP", "CRP, art. 65.º", "Código Civil, art. 483.º"; sem artigo, o diploma ("Lei n.º 2/99").
@@ -156,10 +156,15 @@ function method() {
 }
 
 function disclaimer() {
-  return h('p', { class: 'brain-note' }, 'Texto consolidado obtido do PGDL e guardado neste site. Pode estar desatualizado e não substitui o Diário da República nem um advogado. Confirma sempre a versão em vigor.');
+  return h('p', { class: 'brain-note' }, 'Texto consolidado do Diário da República Eletrónico (DRE) e do PGDL, guardado neste site. Pode estar desatualizado e não substitui o Diário da República nem um advogado. Confirma sempre a versão em vigor.');
 }
 
 // ── Vistas ──────────────────────────────────────────────────────────────────────────────────────
+const docList = (docs) => h('ul', { class: 'brain-docs' }, docs.map((d) => h('li', null,
+  h('a', { href: hashFor(d.id) }, d.name), h('span', null, `${d.n} artigos`))));
+// Os graus baixos têm centenas de diplomas: ficam recolhidos, por ordem cronológica inversa.
+const tierDocs = (docs) => (docs.length <= 12 ? docList(docs)
+  : h('details', { class: 'brain-fold' }, h('summary', null, `Ver os ${docs.length} diplomas`), docList(docs)));
 function viewHome() {
   const byRank = meta.ranks.map((r) => ({ ...r, docs: meta.docs.filter((d) => d.rank === r.rank) })).filter((r) => r.docs.length);
   return [
@@ -173,8 +178,7 @@ function viewHome() {
       byRank.map((r) => h('div', { class: 'brain-tier', 'data-rank': r.rank },
         h('h4', null, h('span', null, `Grau ${r.rank}`), ' ', r.name),
         h('p', { class: 'brain-tier-note' }, r.note),
-        h('ul', { class: 'brain-docs' }, r.docs.map((d) => h('li', null,
-          h('a', { href: hashFor(d.id) }, d.name), h('span', null, `${d.n} artigos`))))))),
+        tierDocs(r.docs)))),
     disclaimer(),
   ];
 }
@@ -279,7 +283,7 @@ function docHeader(d) {
     badge(d),
     h('h3', null, d.name),
     h('p', { class: 'brain-tier-note' }, `${rankName(d.rank)} · ${d.title}`),
-    h('a', { class: 'brain-open', href: d.url, target: '_blank', rel: 'noopener noreferrer' }, 'Fonte: PGDL ↗'));
+    h('a', { class: 'brain-open', href: d.url, target: '_blank', rel: 'noopener noreferrer' }, `Fonte: ${/diariodarepublica/.test(d.url) ? 'DRE' : 'PGDL'} ↗`));
 }
 
 function viewToc(d, doc, missing) {

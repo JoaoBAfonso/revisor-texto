@@ -1,0 +1,282 @@
+{
+ "versionInfo": {
+  "moduleVersion": "3RLECzcfCngi2cX7om1Amw",
+  "apiVersion": "0J5toCe4aZFDi88AoH0G0Q"
+ },
+ "viewName": "LegislacaoConsolidada.LegCons_Detalhe",
+ "screenData": {
+  "variables": {
+   "HasJurisprudenciaAssociadaVar": false,
+   "DiplomaLegisId": "502635",
+   "IsRended": false,
+   "ShowFragAlteracoes": false,
+   "ShowFragDiferencas": false,
+   "DiplomaFragId": "34520775",
+   "DataSelecionada": "2026-10-31",
+   "FragmentoVersaoId": "0",
+   "ELI_HTML": "<div data-container=\"\" class=\"eli-act-document-metadata\" prefix=\"eli: http://data.europa.eu/eli/ontology#\"><div id=\"eli-legal-resource\"><span about=\"\" typeof=\"eli:LegalResource\"></span><span about=\"\" property=\"eli:uri_schema\" resource=\"https://diariodarepublica.pt/dr/geral/ligacoes-interesse/identificador-europeu-legislacao-eli\"></span><span about=\"\" property=\"eli:is_realized_by\" resource=\"pt\"></span><span about=\"\" property=\"eli:number\" datatype=\"xsd:string\" content=\"\"></span><span about=\"\" property=\"eli:id_local\" datatype=\"xsd:string\" content=\"337\"></span><span about=\"\" property=\"eli:type_document\" resource=\"http://data.dre.pt/eli/authority/resource-type/decapconst\"></span><span about=\"\" property=\"eli:responsibility_of_agent\" resource=\"http://data.dre.pt/eli/authority/legal-agent/incm\"></span><span about=\"\" property=\"eli:description\" lang=\"pt\" content=\"Aprova a Constituição da República Portuguesa\"></span><span about=\"\" property=\"eli:date_document\" datatype=\"xsd:date\" content=\"2005-08-12\"></span><span about=\"\" property=\"eli:in_force\" resource=\"http://data.europa.eu/eli/ontology#InForce-inForce\"></span><span about=\"\" property=\"eli:is_about\" resource=\"http://data.dre.pt/eli/authority/legal-subject/29963640\"></span><span about=\"\" property=\"eli:is_about\" resource=\"http://data.dre.pt/eli/authority/legal-subject/30212836\"></span><span about=\"\" property=\"eli:is_about\" resource=\"http://data.dre.pt/eli/authority/legal-subject/30213531\"></span><span about=\"\" property=\"eli:is_about\" resource=\"http://data.dre.pt/eli/authority/legal-subject/30215532\"></span><span about=\"\" property=\"eli:is_about\" resource=\"http://data.dre.pt/eli/authority/legal-subject/30215645\"></span><span about=\"\" property=\"eli:is_about\" resource=\"http://data.dre.pt/eli/authority/legal-subject/30216189\"></span><span about=\"\" property=\"eli:is_about\" resource=\"http://data.dre.pt/eli/authority/legal-subject/30220424\"></span><span about=\"\" property=\"eli:is_about\" resource=\"http://data.dre.pt/eli/authority/legal-subject/30220502\"></span><span about=\"\" property=\"eli:is_about\" resource=\"http://data.dre.pt/eli/authority/legal-subject/30220503\"></span><span about=\"\" property=\"eli:is_about\" resource=\"http://data.dre.pt/eli/authority/legal-subject/30220506\"></span><span about=\"\" property=\"eli:is_about\" resource=\"http://data.dre.pt/eli/authority/legal-subject/30221745\"></span><span about=\"\" property=\"eli:is_about\" resource=\"http://data.dre.pt/eli/authority/legal-subject/30223553\"></span><span about=\"\" property=\"eli:is_about\" resource=\"http://data.dre.pt/eli/authority/legal-subject/30224246\"></span><span about=\"\" property=\"eli:is_about\" resource=\"http://data.dre.pt/eli/authority/legal-subject/30226264\"></span><span about=\"\" property=\"eli:is_about\" resource=\"http://data.dre.pt/eli/authority/legal-subject/30226323\"></span><span about=\"\" property=\"eli:is_about\" resource=\"http://data.dre.pt/eli/authority/legal-subject/30226576\"></span><span about=\"\" property=\"eli:is_about\" resource=\"http://data.dre.pt/eli/authority/legal-subject/30228280\"></span><span about=\"\" property=\"eli:is_about\" resource=\"http://data.dre.pt/eli/authority/legal-subject/30228747\"></span><span about=\"\" property=\"eli:is_about\" resource=\"http://data.dre.pt/eli/authority/legal-subject/30229169\"></span><span about=\"\" property=\"eli:is_about\" resource=\"http://data.dre.pt/eli/authority/legal-subject/30229520\"></span><span about=\"\" property=\"eli:is_about\" resource=\"http://data.dre.pt/eli/authority/legal-subject/30229607\"></span><span about=\"\" property=\"eli:is_about\" resource=\"http://data.dre.pt/eli/authority/legal-subject/30231514\"></span><span about=\"\" property=\"eli:is_about\" resource=\"http://data.dre.pt/eli/authority/legal-subject/30231532\"></span><span about=\"\" property=\"eli:is_about\" resource=\"http://data.dre.pt/eli/authority/legal-subject/30233900\"></span><span about=\"\" property=\"eli:is_about\" resource=\"http://data.dre.pt/eli/authority/legal-subject/30234157\"></span><span about=\"\" property=\"eli:is_about\" resource=\"http://data.dre.pt/eli/authority/legal-subject/30234244\"></span><span about=\"\" property=\"eli:is_about\" resource=\"http://data.dre.pt/eli/authority/legal-subject/30235384\"></span><span about=\"\" property=\"eli:is_about\" resource=\"http://data.dre.pt/eli/authority/legal-subject/30235648\"></span><span about=\"\" property=\"eli:is_about\" resource=\"http://data.dre.pt/eli/authority/legal-subject/30235792\"></span><span about=\"\" property=\"eli:changed_by\" resource=\"http://data.dre.pt/eli/leiconst/1/2005/08/12/p/dre\"></span><span about=\"\" property=\"eli:changed_by\" resource=\"http://data.dre.pt/eli/leiconst/1/2004/07/24/p/dre\"></span><span about=\"\" property=\"eli:changed_by\" resource=\"http://data.dre.pt/eli/leiconst/1/2001/12/12/p/dre\"></span><span about=\"\" property=\"eli:changed_by\" resource=\"http://data.dre.pt/eli/leiconst/1/1997/09/20/p/dre\"></span><span about=\"\" property=\"eli:changed_by\" resource=\"http://data.dre.pt/eli/leiconst/1/1992/11/25/p/dre\"></span></div><div id=\"eli-legal-expression\"><span about=\"pt\" typeof=\"eli:LegalExpression\"></span><span about=\"pt\" property=\"eli:uri_schema\" resource=\"https://diariodarepublica.pt/dr/geral/ligacoes-interesse/identificador-europeu-legislacao-eli\"></span><span about=\"pt\" property=\"eli:language\" resource=\"http://publications.europa.eu/resource/authority/language/POR\"></span><span about=\"pt\" property=\"eli:realizes\" resource=\"\"></span><span about=\"pt\" property=\"eli:publisher_agent\" resource=\"http://data.dre.pt/eli/authority/legal-institution/incm\"></span><span about=\"pt\" property=\"eli:title\" lang=\"pt\" datatype=\"xsd:string\" content=\"Constituição da República Portuguesa - CRP\"></span></div><div id=\"eli-legal-format\"><div id=\"eli-legal-format-html\"><span about=\"pt/html\" typeof=\"eli:Format\"></span><span about=\"pt/html\" property=\"eli:uri_schema\" resource=\"https://diariodarepublica.pt/dr/geral/ligacoes-interesse/identificador-europeu-legislacao-eli\"></span><span about=\"pt/html\" property=\"eli:format\" resource=\"http://www.iana.org/assignments/media-types/text/html\"></span><span about=\"pt/html\" property=\"eli:embodies\" resource=\"pt\" typeof=\"eli:Format\"></span><span about=\"pt/html\" property=\"eli:publisher\" lang=\"pt\" datatype=\"xsd:string\" resource=\"INCM\"></span><span about=\"pt/html\" property=\"eli:publisher_agent\" resource=\"http://data.dre.pt/eli/authority/legal-institution/incm\"></span><span about=\"pt/html\" property=\"eli:rightsholder_agent\" resource=\"http://data.dre.pt/eli/authority/legal-institution/incm\"></span><span about=\"pt/html\" property=\"eli:legal_value\" resource=\"http://data.europa.eu/eli/ontology#LegalValue-official\"></span><span about=\"pt/html\" property=\"eli:licence\" resource=\"http://data.dre.pt/eli/dec-lei/83/2016/p/dr/pt/html\"></span></div><div id=\"eli-legal-format-pdf\"><span about=\"pt/pdf\" typeof=\"eli:Format\"></span><span about=\"pt/pdf\" property=\"eli:uri_schema\" resource=\"https://diariodarepublica.pt/dr/geral/ligacoes-interesse/identificador-europeu-legislacao-eli\"></span><span about=\"pt/pdf\" property=\"eli:format\" resource=\"http://www.iana.org/assignments/media-types/application/pdf\"></span><span about=\"pt/pdf\" property=\"eli:media-type\" resource=\"application/pdf;type=generated\"></span><span about=\"pt/pdf\" property=\"eli:embodies\" resource=\"pt\" typeof=\"eli:Format\"></span><span about=\"pt/pdf\" property=\"eli:publisher\" lang=\"pt\" datatype=\"xsd:string\" resource=\"INCM\"></span><span about=\"pt/pdf\" property=\"eli:publisher_agent\" resource=\"http://data.dre.pt/eli/authority/legal-institution/incm\"></span><span about=\"pt/pdf\" property=\"eli:rightsholder_agent\" resource=\"http://data.dre.pt/eli/authority/legal-institution/incm\"></span><span about=\"pt/pdf\" property=\"eli:legal_value\" resource=\"http://data.europa.eu/eli/ontology#LegalValue-official\"></span><span about=\"pt/pdf\" property=\"eli:licence\" resource=\"http://data.dre.pt/eli/dec-lei/83/2016/p/dr/pt/html\"></span></div></div></div>",
+   "hasFragIdLink": false,
+   "Ano": 1976,
+   "DataAux": "2026-10-31",
+   "Mensagem": {
+    "Texto": "",
+    "IsActive": false,
+    "AlertId": ""
+   },
+   "TituloComFragmento": "",
+   "Description": "",
+   "ShowRevogados": false,
+   "LoadFiltro": false,
+   "FragVersaoIndice": "0",
+   "ShowZoom": false,
+   "CurrentZoom": "1",
+   "IsPageTracked": false,
+   "FragmentoVersaoIdAux": "0",
+   "IndexLinhaToScrollId": "",
+   "IsShowConteudoRelacionado": true,
+   "ShowZoomButtons": true,
+   "TituloAux": "Decreto de Aprovação da Constituição ",
+   "TipoConteudosBools": {
+    "AcordaosSTA": false,
+    "Atos1": false,
+    "Atos2": false,
+    "AtosSocietarios": false,
+    "DGAP": false,
+    "DGODOUT": false,
+    "DiarioRepublica": false,
+    "Jurisprudencia": false,
+    "Legacor": false,
+    "REGTRAB": false
+   },
+   "EmissorVar": "",
+   "PesquisaAvancada_Struct": {
+    "tipoConteudo": {
+     "List": [],
+     "EmptyListItem": ""
+    },
+    "serie": {
+     "List": [],
+     "EmptyListItem": ""
+    },
+    "numero": "",
+    "ano": "0",
+    "suplemento": "0",
+    "dataPublicacao": "",
+    "dataPublicacaoDe": "1900-01-01",
+    "dataPublicacaoAte": "1900-01-01",
+    "parte": "",
+    "apendice": "",
+    "fasciculo": "",
+    "tipo": {
+     "List": [],
+     "EmptyListItem": ""
+    },
+    "emissor": {
+     "List": [],
+     "EmptyListItem": ""
+    },
+    "texto": "",
+    "sumario": "",
+    "entidadeProponente": {
+     "List": [],
+     "EmptyListItem": ""
+    },
+    "numeroDR": "",
+    "paginaInicial": "0",
+    "paginaFinal": "0",
+    "dataAssinatura": "",
+    "dataDistribuicao": "",
+    "entidadePrincipal": {
+     "List": [],
+     "EmptyListItem": ""
+    },
+    "entidadeEmitente": {
+     "List": [],
+     "EmptyListItem": ""
+    },
+    "docType": "",
+    "proferido": "",
+    "processo": "",
+    "assunto": "",
+    "recorrente": "",
+    "recorrido": "",
+    "relator": "",
+    "empresa": "",
+    "concelho": "",
+    "nif": "",
+    "anuncio": "",
+    "numeroDoc": "",
+    "DataAssinaturaDe": "1900-01-01",
+    "DataAssinaturaAte": "1900-01-01",
+    "DataDistribuicaoDe": "1900-01-01",
+    "DataDistribuicaoAte": "1900-01-01",
+    "semestre": "",
+    "IsLegConsolidadaSelected": false,
+    "IsFromData": false,
+    "DescritorList": {
+     "List": [],
+     "EmptyListItem": ""
+    }
+   },
+   "IsPrint": false,
+   "IsLoadingPDFConsolidacao": false,
+   "Comes": "",
+   "WithConteudoRevogado": false,
+   "ModificanteFragId": "0",
+   "IndiceList": {
+    "List": [],
+    "EmptyListItem": {
+     "IsOpen": true,
+     "IsHidden": false,
+     "ConsolidacaoFragmento": {
+      "Id": "0",
+      "CreationDate": "1900-01-01T00:00:00",
+      "ModificationDate": "1900-01-01T00:00:00",
+      "FragmentoVersaoId": "0",
+      "PaiId": "0",
+      "Orderm": 0,
+      "IndexOrdem": "0",
+      "FullName": "",
+      "Name": "",
+      "Epigrafe": "",
+      "PreviousID": "0",
+      "NextId": "0",
+      "Cid": "0",
+      "DataVersao": "1900-01-01T00:00:00",
+      "AssociacaoOrigemTitle": "",
+      "AssociacaoDescription": "",
+      "AssociacaoParams": "",
+      "IsDescriptionVisible": false,
+      "IsAnexo": false,
+      "GrupoTipoModificacaoEnumId": 0,
+      "IsWithAssociation": false,
+      "IsActive": true,
+      "FragmentoVersoesAnterioresId": "0",
+      "ConsolidacaoId": "0",
+      "Temp_Log": ""
+     },
+     "FragmentoVersao": {
+      "Id": "0",
+      "AssociacaoPrincipalId": "0",
+      "AssociacaoSecundariaId": "0",
+      "DataEntradaVigor": "1900-01-01T00:00:00",
+      "DataProducaoEfeitos": "1900-01-01T00:00:00",
+      "DataSuspensao": "1900-01-01T00:00:00",
+      "DataVersao": "1900-01-01T00:00:00",
+      "Epigrafe": "",
+      "VersaoEstadoId": 0,
+      "Identificacao": "",
+      "OmitTipo": false,
+      "Ordem": "0",
+      "Root": false,
+      "Texto": "",
+      "TipoFragmentoId": 0,
+      "UsaAssociacaoSecundaria": false,
+      "KeepEstado": false,
+      "Tituo": "",
+      "DataCriacao": "1900-01-01T00:00:00",
+      "DataModificacao": "1900-01-01T00:00:00",
+      "FragmentoPaiId": "0",
+      "FragmentoId": "0"
+     },
+     "Nota": {
+      "List": [],
+      "EmptyListItem": ""
+     },
+     "AlteracoesList": {
+      "List": [],
+      "EmptyListItem": ""
+     },
+     "Nivel": 0,
+     "HasFilhos": false,
+     "TodosFilhosRevogados": false,
+     "DataEntradaVigorProximaVersao": "1900-01-01"
+    }
+   },
+   "IsFiltrar": false,
+   "WithAlteracoes": false,
+   "SumarioAux": "Aprova a Constituição da República Portuguesa",
+   "Tipo": "decreto-aprovacao-constituicao",
+   "_tipoInDataFetchStatus": 1,
+   "Key": "1976-34520775",
+   "_keyInDataFetchStatus": 1,
+   "GetDiplomaFragByIdAndApplicationSetting": {
+    "IsPublished": true,
+    "DomainName": "https://diariodarepublica.pt",
+    "IsSitemapErro": false,
+    "NewFragmentoVersaoId": "0",
+    "DataSelecionadaOut": "1900-01-01",
+    "EnvironmentName": "PRD",
+    "ApplicationRoot": "/dr",
+    "ConsolidadaConteudoDetalhe": {
+     "DiplomaFrag": {
+      "ConteudoTitle": "Decreto de Aprovação da Constituição ",
+      "Designacao": "Constituição da República Portuguesa - CRP",
+      "ELI": "https://data.dre.pt/eli",
+      "FormattedTitle": "Decreto de aprovação da Constituição  - Diário da República n.º 86/1976, Série I de 1976-04-10",
+      "Nota": "",
+      "DiplomaConsolidacaoEstadoId": "4",
+      "EmAtualizacao": false,
+      "DiplomaLegisId": "502635"
+     },
+     "DiarioRepublica": {
+      "ConteudoTitle": "Diário da República n.º 86/1976, Série I de 1976-04-10",
+      "LinkSitemap": "/dr/detalhe/diario-republica/86-1976-78796",
+      "DataPublicacao": "1976-04-10T00:00:00.000Z"
+     },
+     "DiplomaLegis": {
+      "AnaliseJuridicaPublica": "True",
+      "Consolidado": "True",
+      "ConteudoTitle": "Decreto de Aprovação da Constituição ",
+      "Emissor": "Presidência da República",
+      "EmissorAcronimo": "",
+      "FormattedTitle": "Decreto de Aprovação da Constituição  - Diário da República n.º 86/1976, Série I de 1976-04-10",
+      "LinkSitemap": "/dr/detalhe/decreto-aprovacao-constituicao/1976-502635",
+      "Numero": "",
+      "Resumo": "",
+      "Sumario": "Aprova a Constituição da República Portuguesa",
+      "Vigencia": "",
+      "Id": "502635",
+      "DataAlteracao": "2022-06-20T17:34:04.817Z",
+      "DataCriacao": "2014-04-01T13:14:39.427Z",
+      "DataPublicacao": "1976-04-10T00:00:00.000Z",
+      "IsDiploma": true,
+      "IsIncludedInSiteMap": true,
+      "IsNoIndex": false,
+      "IsRegional": false
+     },
+     "Serie": {
+      "Nome": "I"
+     },
+     "TipoDiploma": {
+      "Acronimo": "decapconst",
+      "Tipo": "Decreto de Aprovação da Constituição"
+     }
+    },
+    "HaveEmissor_DecisaoJudicial": false,
+    "DataFetchStatus": 1
+   }
+  }
+ },
+ "clientVariables": {
+  "NewUser": "https://diariodarepublica.pt/dr/utilizador/registar",
+  "PesquisaAvancada": "https://diariodarepublica.pt/dr/pesquisa-avancada",
+  "Login": "https://diariodarepublica.pt/dr/utilizador/entrar",
+  "Data": "2026-10-31",
+  "DicionarioJuridicoId": "0",
+  "FullHTMLURL_EN": "https://diariodarepublica.pt/dr/en",
+  "SearchStartIndex": 0,
+  "StartIndex": 0,
+  "SearchIsConsolidation": false,
+  "DiarioRepublicaId": "",
+  "SearchFilters": "",
+  "Serie": true,
+  "DiplomaConteudoId": "",
+  "CookiePath": "/dr/",
+  "Session_GUID": "a91421a2-d053-47a7-9a5d-ccca5a3bc8cc",
+  "DateTime": "2026-10-31T18:08:05.829Z",
+  "FullHTMLURL": "https://diariodarepublica.pt/dr/home",
+  "TipoDeUtilizador": "",
+  "GUID": ""
+ }
+}

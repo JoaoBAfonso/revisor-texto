@@ -724,6 +724,8 @@
   .brain-docs li { display: flex; flex-wrap: wrap; justify-content: space-between; gap: var(--s1) var(--s3); padding: var(--s2) 0; border-bottom: 1px solid var(--line); }
   .brain-docs li a { min-width: 0; overflow-wrap: anywhere; }
   .brain-docs li span { color: var(--muted); font-size: .85rem; }
+  .brain-fold > summary { cursor: pointer; padding: var(--s2) 0; font-family: var(--display); font-weight: 700; text-transform: uppercase; font-size: .9rem; }
+  .brain-fold[open] > summary { margin-bottom: var(--s2); }
   .brain-method { display: grid; gap: var(--s3); counter-reset: m; }
   .brain-method li { counter-increment: m; padding-left: 2.6rem; position: relative; }
   .brain-method li::before { content: counter(m, decimal-leading-zero); position: absolute; left: 0; top: 0; font-family: var(--display); font-weight: 700; color: var(--orange); font-size: 1.2rem; }

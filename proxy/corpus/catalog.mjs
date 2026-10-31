@@ -11,7 +11,8 @@ export const RANKS = [
   { rank: 2, name: 'Leis de valor reforçado', note: 'Leis orgânicas, leis de bases e estatutos: condicionam as leis comuns (art. 112.º da CRP).' },
   { rank: 3, name: 'Códigos', note: 'Sistematizam um ramo do direito e são a base de interpretação das leis especiais.' },
   { rank: 4, name: 'Leis e decretos-leis', note: 'Atos legislativos da Assembleia da República e do Governo, com o mesmo valor (art. 112.º, n.º 2).' },
-  { rank: 5, name: 'Regimes sectoriais', note: 'Regimes especiais que prevalecem sobre o geral na sua matéria (lex specialis).' },
+  { rank: 5, name: 'Regimes sectoriais e regionais', note: 'Regimes especiais que prevalecem sobre o geral na sua matéria (lex specialis), decretos legislativos regionais e regulamentares.' },
+  { rank: 6, name: 'Portarias, resoluções e atos administrativos', note: 'Regulamentam as leis e não as podem contrariar; as resoluções do Conselho de Ministros orientam a administração.' },
 ];
 
 const A = (id, name, short, rank, area = [], alias = []) => ({ id, name, short, rank, area, alias });

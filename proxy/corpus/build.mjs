@@ -13,6 +13,7 @@ import { CATALOG, RANKS, ALIASES } from './catalog.mjs';
 import { readHtml, extractText } from '../texto.js';
 import { tokens } from './tokens.mjs';
 import { TOPICS } from '../guia.js';
+import { makeResolver, compileGuide } from './procedures.mjs';
 
 const OUT = join(dirname(fileURLToPath(import.meta.url)), '..', '..', 'data', 'lei');
 mkdirSync(OUT, { recursive: true });
@@ -156,7 +157,13 @@ if (!INDEX_ONLY) {
 }
 
 // ── Índice ───────────────────────────────────────────────────────────────────────────────────────
-const docs = CATALOG.filter((d) => existsSync(file(d.id))).map((d) => JSON.parse(readFileSync(file(d.id), 'utf8')));
+const DRE_DOCS = join(dirname(fileURLToPath(import.meta.url)), 'dre', 'docs.json');
+const dreDocs = existsSync(DRE_DOCS) ? JSON.parse(readFileSync(DRE_DOCS, 'utf8')) : [];
+const entries = [...CATALOG, ...dreDocs.filter((d) => !CATALOG.some((c) => c.id === d.id))].filter((d) => existsSync(file(d.id)));
+const entryOf = new Map(entries.map((e) => [e.id, e]));
+const docs = entries.map((d) => JSON.parse(readFileSync(file(d.id), 'utf8')));
+// Texto integral só nos diplomas até à lei ordinária; os restantes (portarias, resoluções…) pesquisam-se por título e epígrafe.
+const FULLTEXT_MAX_RANK = 4;
 const keys = new Set(docs.flatMap((d) => d.arts.map((a) => `${d.id}:${a.k}`)));
 const gids = [];
 const meta = { rev: new Date().toISOString().slice(0, 10), ranks: RANKS, docs: [] };
@@ -170,19 +177,24 @@ const NOTE = /^(Cont[ée]m as altera[çc][õo]es|Consultar vers[õo]es anteriore
 const trimNotes = (x) => { const lines = x.split('\n'); const i = lines.findIndex((l) => NOTE.test(l.trim())); return (i < 0 ? lines : lines.slice(0, i)).join('\n').trim(); };
 for (const d of docs) {
   let dirty = false;
+  const c = entryOf.get(d.id);
+  if (c.tipo) {
+    const title = `${c.tipo}${c.numero ? ` n.º ${c.numero}` : ` de ${c.ano}`} — ${c.name}`;
+    if (d.title !== title) { d.title = title; dirty = true; }
+  }
   d.arts.forEach((a, i) => {
     const clean = trimNotes(a.x);
     if (clean !== a.x && clean) { a.x = clean; dirty = true; }
+    if (!a.r) { a.r = refsOf(a.x, d.id).filter((r) => r !== `${d.id}:${a.k}`); dirty = true; }
     const valid = a.r.filter((r) => keys.has(r));
     if (valid.length !== a.r.length) { a.r = valid; dirty = true; }
     for (const r of a.r) (inbound[r] ||= new Set()).add(`${d.id}:${a.k}`);
     const gid = off + i;
-    for (const t of new Set(tokens(a.x))) (body.get(t) || body.set(t, []).get(t)).push(gid);
+    if (c.rank <= FULLTEXT_MAX_RANK) for (const t of new Set(tokens(a.x))) (body.get(t) || body.set(t, []).get(t)).push(gid);
     for (const t of new Set(tokens(`${a.t} ${d.short}`))) (head.get(t) || head.set(t, []).get(t)).push(gid);
   });
   if (dirty) writeFileSync(file(d.id), JSON.stringify(d));
-  const c = CATALOG.find((x) => x.id === d.id);
-  meta.docs.push({ id: d.id, name: c.name, short: c.short, rank: c.rank, area: c.area, url: d.url, title: d.title, off, n: d.arts.length, secs: d.secs.length });
+  meta.docs.push({ id: d.id, name: c.name, short: c.short, rank: c.rank, area: c.area, url: d.url, title: d.title, off, n: d.arts.length, secs: d.secs.length, ...(c.ano ? { ano: c.ano } : {}) });
   off += d.arts.length;
 }
 meta.total = off;
@@ -198,4 +210,9 @@ writeFileSync(join(OUT, 'meta.json'), JSON.stringify(meta));
 writeFileSync(join(OUT, 'index.json'), JSON.stringify(index));
 writeFileSync(join(OUT, 'refs.json'), JSON.stringify(refs));
 writeFileSync(join(OUT, 'heads.json'), JSON.stringify(docs.flatMap((d) => d.arts.map((a) => [a.k, a.n, a.t]))));
+
+const guide = compileGuide(makeResolver(entryOf, docs, ALIASES));
+writeFileSync(join(OUT, 'guia.json'), JSON.stringify(guide.out));
+console.log(`\nProcedimentos: ${guide.stats.topics} áreas, ${guide.stats.deadlines} prazos, ${guide.stats.refs} normas citadas; ${guide.unresolved.length} citações sem ligação exata ao corpus:`);
+for (const u of guide.unresolved) console.log(`  ! ${u}`);
 console.log(`\n${docs.length} diplomas, ${off} artigos, ${Object.keys(index.b).length} termos, ${Object.keys(refs).length} artigos citados.`);

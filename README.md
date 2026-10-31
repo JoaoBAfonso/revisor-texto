@@ -1,4 +1,4 @@
-﻿# Revisor de Texto
+# Revisor de Texto
 
 Verificador ortográfico (português de Portugal e inglês US + UK) que corre inteiramente no browser, com Hunspell em WebAssembly.
 
@@ -62,8 +62,9 @@ O site é agora uma toolbox com uma página inicial e uma vista por ferramenta (
 
 É o conhecimento que guia a ferramenta de Direito. No Guia, cada pesquisa mostra a secção **A lei, por hierarquia** (normas-chave da área, diplomas da matéria e artigos completos agrupados da Constituição para baixo) antes das perspetivas, fontes externas, passos e modelos. No modo Legislação percorres a hierarquia, os diplomas, o índice de cada um e cada artigo com «remete para» e «citado por».
 
-Corpus curado de 56 diplomas (Constituição, códigos, leis de valor reforçado, leis e decretos-leis, regimes sectoriais) em data/lei, gerado a partir do texto consolidado do PGDL. Não é "toda a legislação": o DRE e o EUR-Lex só servem texto com JavaScript. A lista, a hierarquia e as áreas (as mesmas ids de proxy/guia.js) estão em proxy/corpus/catalog.mjs.
+Corpus de ~1470 diplomas e ~73 700 artigos em data/lei: os 56 diplomas-chave do PGDL (catálogo em proxy/corpus/catalog.mjs) mais toda a legislação **consolidada em vigor** listada por tema no Diário da República (screenservices do DRE, chamados a partir do Node) e os diplomas citados no guia. Não é literalmente toda a lei: só o que o DRE tem consolidado; o direito da UE e os atos não consolidados ficam de fora. Portarias, resoluções e despachos (grau 6) só são pesquisáveis por título/epígrafe; o texto dos graus 0 a 4 é indexado por inteiro.
 
-- Regenerar: cd proxy; node corpus/build.mjs (opções: --force, --only id,id, --index). Escreve data/lei/<id>.json, meta.json (inclui os temas de guia.js), index.json (índice invertido), refs.json (citações) e heads.json (epígrafes). Remove do texto as notas de alterações do PGDL.
+- Regenerar: cd proxy; node corpus/dre.mjs [--list|--force|--limit N] (lista e descarrega do DRE; se o DRE mudar a aplicação, recapturar os modelos em corpus/dre/) e depois node corpus/build.mjs [--force|--only id,id|--index]. Escreve data/lei/<id>.json, meta.json, index.json, refs.json, heads.json e guia.json.
+- Procedimentos e prazos: corpus/procedures.mjs compila TOPICS/prazos/normas de proxy/guia.js (fonte de autoria) em data/lei/guia.json, resolvendo cada citação a diploma/artigo e listando as que não estão no corpus. A base de cada prazo é uma ligação ao artigo.
 - Cliente: lei.js pesquisa por tokens (os mesmos de proxy/corpus/tokens.mjs), reforça os diplomas da área identificada, agrupa por grau hierárquico e expõe window.brain (section, link, ref). Aceita atalhos como "artigo 37 CRP".
 - Orientativo: o texto pode estar desatualizado. Confirma no Diário da República e consulta um jurista.

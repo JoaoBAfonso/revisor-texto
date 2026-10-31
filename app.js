@@ -1049,6 +1049,14 @@
     return sec;
   }
 
+  // Base legal do prazo: ligação interna ao artigo no corpus, quando existir.
+  function baseLink(text) {
+    const a = h('a', {}, text);
+    const fill = () => window.brain.link(text).then((href) => { if (href) a.href = href; }).catch(() => {});
+    if (window.brain) fill(); else window.addEventListener('brain-ready', fill, { once: true });
+    return a;
+  }
+
   function lawBottom(t, values, onChange, syncs) {
     const models = TEMPLATES
       .filter((m) => m.topics.includes(t?.id) || m.topics.includes('*'))
@@ -1059,7 +1067,7 @@
       t ? lawSection('law-act', 'O que fazer a seguir', null,
         t.steps?.length ? lawBlock('Passo a passo', lawList(t.steps, true)) : null,
         t.deadlines?.length ? lawBlock('Prazos', h('ul', { class: 'deadlines' }, t.deadlines.map((d) => h('li', {},
-          h('strong', {}, d.when), ` — ${d.what} `, h('span', { class: 'meta' }, `(${d.base})`))))) : null,
+          h('strong', {}, d.when), ` — ${d.what} `, h('span', { class: 'meta' }, '(', baseLink(d.base), ')'))))) : null,
         hasAngles && t.arguments?.length ? lawBlock('Argumentos úteis', lawList(t.arguments)) : null,
         t.entities?.length ? lawBlock('Onde recorrer', entityList(t.entities)) : null) : null,
       lawSection('law-models', 'Modelos prontos a usar', 'Preenche os campos uma vez: servem para todos os modelos e ficam guardados só neste navegador (nome, morada e contacto). O texto pode ser editado à mão.',
