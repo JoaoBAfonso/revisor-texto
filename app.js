@@ -642,38 +642,36 @@
   }
 
   // Painéis recolhíveis: o cabeçalho passa a ser um botão com ícone; o resto do conteúdo vai para um corpo que se esconde.
-  // O estado (aberto/fechado) dos painéis com «key» fica guardado neste navegador.
+  // Começam todos recolhidos.
   const folds = new Map();
   let foldSeq = 0;
-  function fold(host, head, { open = true, key = '' } = {}) {
+  function fold(host, head, { open = false } = {}) {
     const title = head.matches('h2, h3') ? head : head.querySelector('h2, h3');
-    const saved = key ? store.get('folds', {})[key] : undefined;
-    const body = h('div', { class: 'fold-body', id: `fold-${++foldSeq}` });
+        const body = h('div', { class: 'fold-body', id: `fold-${++foldSeq}` });
     [...host.childNodes].filter((n) => n !== head).forEach((n) => body.append(n));
     host.append(body);
     host.classList.add('foldable');
     const btn = h('button', { type: 'button', class: 'fold', 'aria-controls': body.id });
     btn.append(...title.childNodes, h('span', { class: 'chev', 'aria-hidden': 'true' }));
     title.append(btn);
-    const set = (value, persist = true) => {
+    const set = (value) => {
       body.hidden = !value;
       btn.setAttribute('aria-expanded', String(value));
       host.classList.toggle('is-collapsed', !value);
-      if (key && persist) store.set('folds', { ...store.get('folds', {}), [key]: value });
     };
-    set(saved ?? open, false);
+    set(open);
     btn.addEventListener('click', () => set(body.hidden));
     folds.set(host, set);
     return host;
   }
   const openPanel = (host) => folds.get(host)?.(true);
 
-  [['tool-definition', true], ['doubts', true], ['news', false], ['law', true], ['tool-translation', false]].forEach(([id, open]) => {
+  ['tool-definition', 'doubts', 'tool-translation'].forEach((id) => {
     const host = $(id);
-    fold(host, host.querySelector('.def-head'), { open, key: id });
+    fold(host, host.querySelector('.def-head'), { open: false });
   });
   const errorsAside = document.querySelector('aside');
-  fold(errorsAside, errorsAside.querySelector('h2'), { key: 'errors' });
+  fold(errorsAside, errorsAside.querySelector('h2'), { open: false });
 
   const doubts = createSearch({
     section: $('doubts'), form: $('doubtsForm'), input: $('doubtsQuery'), button: $('doubtsBtn'), result: $('doubtsResult'),
@@ -699,7 +697,8 @@
 
   function updateDoubts() {
     const pt = langEl.value === 'pt-PT';
-    for (const s of searches) { s.section.hidden = !pt; s.sync(); }
+    for (const s of searches) s.sync();
+    doubts.section.hidden = !pt;
   }
   document.addEventListener('selectionchange', () => {
     if (document.activeElement !== textEl) return;
@@ -807,9 +806,10 @@
     const text = textEl.value.slice(start, end);
     if (text.trim()) lastSel = { start, end, text };
   });
+  let currentView = null;
   const answerInsert = $('answerInsert');
   function setupInsert(url) {
-    answerInsert.hidden = false;
+    answerInsert.hidden = currentView !== 'revisor';
     answerInsert.disabled = !lastSel;
     answerInsert.textContent = lastSel ? 'Ligar a seleção a esta página' : 'Seleciona texto no editor para o ligar a esta página';
     answerInsert.onclick = () => {
@@ -1339,6 +1339,29 @@
   renderTargets();
   updateDoubts();
   updateTranslateButton();
+
+  // Páginas: #/ (início), #/revisor, #/noticias, #/direito. Cada ferramenta é uma vista própria.
+  const VIEWS = {
+    home: { title: 'Fumaça · Toolbox', product: 'Toolbox', strap: 'Jornalismo e cidadania. Sem anúncios, sem rasto.' },
+    revisor: { title: 'Revisor de texto · Fumaça', product: 'Revisor', strap: 'Verificação ortográfica independente. Sem anúncios, sem rasto.' },
+    noticias: { title: 'Arquivo de notícias · Fumaça', product: 'Notícias', strap: 'Como as palavras são usadas nas notícias.' },
+    direito: { title: 'Direito e legislação · Fumaça', product: 'Direito', strap: 'Informação jurídica de serviço público. Não substitui um advogado.' },
+  };
+  function route() {
+    const name = location.hash.replace(/^#\/?/, '').split(/[/?]/)[0];
+    const view = VIEWS[name] ? name : 'home';
+    if (view === currentView) return;
+    currentView = view;
+    for (const el of document.querySelectorAll('[data-view]')) el.hidden = el.dataset.view !== view;
+    $('revisorControls').hidden = view !== 'revisor';
+    $('product').textContent = VIEWS[view].product;
+    $('strap').textContent = VIEWS[view].strap;
+    document.title = VIEWS[view].title;
+    window.scrollTo(0, 0);
+    if (view === 'revisor') window.dispatchEvent(new Event('resize'));
+  }
+  window.addEventListener('hashchange', route);
+  route();
   loadSpeller(langEl.value)
     .then((s) => { speller = s; check(); loadOther(langEl.value); })
     .catch((e) => { statusEl.textContent = `${e.message}. Abre a página através de um servidor (não file://).`; });

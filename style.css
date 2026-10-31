@@ -149,6 +149,7 @@
 
   /* Editor e ferramentas à esquerda, erros à direita.
      No telemóvel os erros passam para logo a seguir ao editor. */
+  main[hidden] { display: none; }
   main {
     flex: 1;
     display: grid;
@@ -302,7 +303,7 @@
   #linkBar a { display: inline-flex; align-items: center; font-weight: 700; }
 
   /* Cartões laterais e ferramentas */
-  aside, .tools > section { container: card / inline-size; padding: var(--pad); background: var(--sand); border: 0; }
+  aside, .tools > section, .page > section { container: card / inline-size; padding: var(--pad); background: var(--sand); border: 0; }
   aside { position: sticky; top: var(--s4); max-height: calc(100dvh - 2 * var(--s4)); overflow: auto; overscroll-behavior: contain; }
   @media (max-width: 900px) { aside { position: static; max-height: none; overflow: visible; } }
   .aside-hint { margin: calc(-1 * var(--s2)) 0 var(--s3); color: var(--muted); font-size: .8rem; }
@@ -496,4 +497,40 @@
     #backdrop { position: static; color: #000; }
     #text { display: none; }
   }
+}
+
+
+/* ───────────────────────── Início e páginas das ferramentas ───────────────────────── */
+@layer layout {
+  main.home, main.page {
+    display: block;
+    width: 100%;
+    max-width: 72rem;
+    margin: 0 auto;
+    padding: var(--s6) max(var(--gutter), env(safe-area-inset-right)) var(--s6) max(var(--gutter), env(safe-area-inset-left));
+  }
+  main.page { max-width: 60rem; }
+  main.page > section { margin-top: var(--s4); }
+  main[hidden] { display: none; }
+}
+@layer components {
+  .home-title { margin: 0 0 var(--s3); font-family: var(--display); font-size: clamp(1.5rem, 4vw + .5rem, 2.4rem); line-height: 1.15; text-transform: uppercase; text-wrap: balance; }
+  .home-lead { margin: 0 0 var(--s6); max-width: 40rem; color: var(--muted); }
+  .tool-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 17rem), 1fr)); gap: var(--s5); }
+  .tool-card {
+    display: flex; flex-direction: column; gap: var(--s3);
+    padding: var(--s5); border: 2px solid var(--ink); background: var(--sand);
+    color: var(--ink); text-decoration: none;
+    transition: transform .15s var(--ease), background-color .15s var(--ease), color .15s var(--ease);
+  }
+  .tool-card h2 { margin: 0; }
+  .tool-card p { margin: 0; flex: 1; }
+  .tool-icon { width: 3.5rem; height: 3.5rem; color: var(--orange); }
+  .tool-go { font-family: var(--display); font-weight: 700; letter-spacing: 1px; text-transform: uppercase; }
+  .tool-go::after { content: " →"; }
+  .tool-card:focus-visible { outline: var(--focus); outline-offset: 3px; }
+  @media (hover: hover) {
+    .tool-card:hover { background: var(--ink); color: var(--paper); transform: translateY(-2px); }
+  }
+  .back { display: inline-block; font-family: var(--display); font-weight: 700; letter-spacing: .5px; }
 }

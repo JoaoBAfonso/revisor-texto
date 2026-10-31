@@ -53,3 +53,7 @@ O texto traduzido é enviado ao DeepL. O limite é de 5000 caracteres por pedido
 - Cada ferramenta (Definição, Dúvidas, Notícias, Direito, Tradução) e o painel de erros são painéis verticais que se expandem/recolhem; o estado fica guardado no navegador.
 - O proxy arruma o texto de fontes externas (DGSI, PGDL, notícias) e isola artigos da CRP (/texto?artigo=N).
 - A secção jurídica mostra primeiro os artigos da Constituição relevantes. O conhecimento está em proxy/guia.js e é validado por proxy/guia.test.mjs (node guia.test.mjs); é orientativo e deve ser revisto por um jurista.
+
+## Toolbox
+
+O site é agora uma toolbox com uma página inicial e uma vista por ferramenta (routing por hash): #/revisor, #/noticias e #/direito.

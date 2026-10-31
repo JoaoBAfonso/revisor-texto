@@ -6,17 +6,17 @@
   <meta name="theme-color" content="#f67844">
   <meta name="color-scheme" content="light">
   <meta name="description" content="Revisor de texto independente: ortografia, acentuação, definições, tradução, dúvidas de língua, notícias e legislação.">
-  <title>Revisor de Texto</title>
-  <link rel="stylesheet" href="style.css?v=19">
+  <title>Fumaça · Toolbox</title>
+  <link rel="stylesheet" href="style.css?v=20">
 </head>
 <body>
   <a class="skip" href="#text">Saltar para o editor</a>
   <header>
-    <a class="brand" href="./" aria-label="Revisor de texto">
+    <a class="brand" href="#/" aria-label="Revisor de texto">
       <img class="logo" src="assets/fumaca-logo.png" alt="Fumaça" width="591" height="160">
-      <span class="product">Revisor</span>
+      <span class="product" id="product">Toolbox</span>
     </a>
-    <div class="controls">
+    <div class="controls" id="revisorControls" hidden>
       <label>Idioma
         <select id="lang">
           <option value="pt-PT">Português (Portugal)</option>
@@ -26,9 +26,97 @@
       <button id="undo" type="button" disabled title="Ctrl+Z">Desfazer</button>
     </div>
   </header>
-  <div class="strap">Verificação ortográfica independente. Sem anúncios, sem rasto.</div>
+  <div class="strap" id="strap">Jornalismo e cidadania. Sem anúncios, sem rasto.</div>
 
-  <main>
+  <main class="home" id="view-home" data-view="home" hidden>
+    <h1 class="home-title">Ferramentas para jornalismo e cidadania</h1>
+    <p class="home-lead">Escolhe uma ferramenta. Tudo corre no teu browser ou através de um proxy simples, sem anúncios e sem rasto.</p>
+    <nav class="tool-grid" aria-label="Ferramentas">
+      <a class="tool-card" href="#/revisor">
+        <svg class="tool-icon" viewBox="0 0 48 48" aria-hidden="true"><path d="M8 38h32M12 30l16-16 6 6-16 16-8 2z" fill="none" stroke="currentColor" stroke-width="3" stroke-linejoin="round"/><path d="M25 17l6 6" stroke="currentColor" stroke-width="3"/></svg>
+        <h2>Revisor de texto</h2>
+        <p>Ortografia e acentuação em português e inglês, definições, dúvidas de língua (Ciberdúvidas), tradução e ligações no texto.</p>
+        <span class="tool-go">Abrir</span>
+      </a>
+      <a class="tool-card" href="#/noticias">
+        <svg class="tool-icon" viewBox="0 0 48 48" aria-hidden="true"><rect x="7" y="9" width="34" height="30" fill="none" stroke="currentColor" stroke-width="3"/><path d="M13 17h14M13 24h22M13 31h22" stroke="currentColor" stroke-width="3"/><rect x="31" y="14" width="4" height="6" fill="currentColor"/></svg>
+        <h2>Arquivo de notícias</h2>
+        <p>Vê como uma palavra ou expressão é usada em notícias recentes de vários órgãos de comunicação, com texto completo e autor.</p>
+        <span class="tool-go">Abrir</span>
+      </a>
+      <a class="tool-card" href="#/direito">
+        <svg class="tool-icon" viewBox="0 0 48 48" aria-hidden="true"><path d="M24 7v34M12 41h24M24 12H10M24 12h14" fill="none" stroke="currentColor" stroke-width="3"/><path d="M10 12L4 26h12zM38 12l-6 14h12z" fill="none" stroke="currentColor" stroke-width="3" stroke-linejoin="round"/></svg>
+        <h2>Direito e legislação</h2>
+        <p>A Constituição, as leis, os acórdãos e os modelos de ação mais relevantes para qualquer tema, explicados em linguagem simples.</p>
+        <span class="tool-go">Abrir</span>
+      </a>
+    </nav>
+  </main>
+  <main class="page" id="view-noticias" data-view="noticias" hidden>
+  <a class="back" href="#/">← Todas as ferramentas</a>
+    <section class="doubts news" id="news" data-tool="news">
+      <div class="def-head">
+        <h2>Notícias</h2>
+      </div>
+      <form class="doubts-form" id="newsForm">
+        <input id="newsQuery" type="search" maxlength="80" placeholder="Palavra ou expressão…" aria-label="Palavra ou expressão a pesquisar em sites de notícias" autocomplete="off">
+        <button id="newsBtn" type="submit" disabled>Pesquisar</button>
+      </form>
+      <details class="sources">
+        <summary data-label="Sites"></summary>
+        <fieldset class="news-sites" id="newsSites" aria-label="Sites de notícias">
+        <label><input type="checkbox" value="publico" checked> Público</label>
+        <label><input type="checkbox" value="expresso" checked> Expresso</label>
+        <label><input type="checkbox" value="rtp" checked> RTP</label>
+        <label><input type="checkbox" value="sic" checked> SIC</label>
+        <label><input type="checkbox" value="tvi" checked> TVI</label>
+        <label><input type="checkbox" value="cm" checked> CM</label>
+        <label><input type="checkbox" value="mensagem" checked> A Mensagem</label>
+        <label><input type="checkbox" value="observador"> Observador</label>
+        <label><input type="checkbox" value="dn"> DN</label>
+        <label><input type="checkbox" value="jn"> JN</label>
+        <label><input type="checkbox" value="eco"> ECO</label>
+        <label><input type="checkbox" value="lusa"> Lusa</label>
+        <label><input type="checkbox" value="poligrafo" checked> Polígrafo (verificação)</label>
+      </fieldset>
+      </details>
+      <div id="newsResult" aria-live="polite">Vê como uma palavra ou expressão é usada em notícias recentes (só português).</div>
+    </section>
+
+  </main>
+
+  <main class="page" id="view-direito" data-view="direito" hidden>
+  <a class="back" href="#/">← Todas as ferramentas</a>
+    <section class="doubts news law" id="law" data-tool="law">
+      <div class="def-head">
+        <h2>Direito e legislação</h2>
+      </div>
+      <form class="doubts-form" id="lawForm">
+        <input id="lawQuery" type="search" maxlength="80" placeholder="Palavra, expressão ou diploma (ex.: Lei n.º 2/99)…" aria-label="Palavra, expressão ou diploma a pesquisar em fontes jurídicas" autocomplete="off">
+        <button id="lawBtn" type="submit" disabled>Pesquisar</button>
+      </form>
+      <details class="sources">
+        <summary data-label="Fontes"></summary>
+        <fieldset class="news-sites" id="lawSources" aria-label="Fontes jurídicas">
+        <label><input type="checkbox" value="dre" checked> Diário da República</label>
+        <label><input type="checkbox" value="pgdl" checked> PGDL</label>
+        <label><input type="checkbox" value="dgsi" checked> Tribunais (DGSI)</label>
+        <label><input type="checkbox" value="tc" checked> Trib. Constitucional</label>
+        <label><input type="checkbox" value="erc" checked> ERC</label>
+        <label><input type="checkbox" value="cnpd" checked> CNPD</label>
+        <label><input type="checkbox" value="cada"> CADA</label>
+        <label><input type="checkbox" value="provedor"> Provedor de Justiça</label>
+        <label><input type="checkbox" value="mp"> Ministério Público</label>
+        <label><input type="checkbox" value="eurlex"> Direito da UE</label>
+        <label><input type="checkbox" value="tedh"> TEDH</label>
+      </fieldset>
+      </details>
+      <div id="lawResult" aria-live="polite">Descobre que leis, acórdãos e deliberações podem ser relevantes para uma palavra ou expressão (só português).</div>
+    </section>
+
+  </main>
+
+  <main id="view-revisor" data-view="revisor" hidden>
     <section class="editor">
       <div class="box">
         <div id="backdrop" aria-hidden="true"></div>
@@ -84,62 +172,6 @@
         <div id="doubtsResult" aria-live="polite">Seleciona uma palavra ou expressão no texto, ou escreve-a acima, para ver dúvidas semelhantes já respondidas (só português).</div>
       </section>
 
-      <section class="doubts news" id="news" data-tool="news">
-        <div class="def-head">
-          <h2>Notícias</h2>
-        </div>
-        <form class="doubts-form" id="newsForm">
-          <input id="newsQuery" type="search" maxlength="80" placeholder="Palavra ou expressão…" aria-label="Palavra ou expressão a pesquisar em sites de notícias" autocomplete="off">
-          <button id="newsBtn" type="submit" disabled>Pesquisar</button>
-        </form>
-        <details class="sources">
-          <summary data-label="Sites"></summary>
-          <fieldset class="news-sites" id="newsSites" aria-label="Sites de notícias">
-          <label><input type="checkbox" value="publico" checked> Público</label>
-          <label><input type="checkbox" value="expresso" checked> Expresso</label>
-          <label><input type="checkbox" value="rtp" checked> RTP</label>
-          <label><input type="checkbox" value="sic" checked> SIC</label>
-          <label><input type="checkbox" value="tvi" checked> TVI</label>
-          <label><input type="checkbox" value="cm" checked> CM</label>
-          <label><input type="checkbox" value="mensagem" checked> A Mensagem</label>
-          <label><input type="checkbox" value="observador"> Observador</label>
-          <label><input type="checkbox" value="dn"> DN</label>
-          <label><input type="checkbox" value="jn"> JN</label>
-          <label><input type="checkbox" value="eco"> ECO</label>
-          <label><input type="checkbox" value="lusa"> Lusa</label>
-          <label><input type="checkbox" value="poligrafo" checked> Polígrafo (verificação)</label>
-        </fieldset>
-        </details>
-        <div id="newsResult" aria-live="polite">Vê como uma palavra ou expressão é usada em notícias recentes (só português).</div>
-      </section>
-
-      <section class="doubts news law" id="law" data-tool="law">
-        <div class="def-head">
-          <h2>Direito e legislação</h2>
-        </div>
-        <form class="doubts-form" id="lawForm">
-          <input id="lawQuery" type="search" maxlength="80" placeholder="Palavra, expressão ou diploma (ex.: Lei n.º 2/99)…" aria-label="Palavra, expressão ou diploma a pesquisar em fontes jurídicas" autocomplete="off">
-          <button id="lawBtn" type="submit" disabled>Pesquisar</button>
-        </form>
-        <details class="sources">
-          <summary data-label="Fontes"></summary>
-          <fieldset class="news-sites" id="lawSources" aria-label="Fontes jurídicas">
-          <label><input type="checkbox" value="dre" checked> Diário da República</label>
-          <label><input type="checkbox" value="pgdl" checked> PGDL</label>
-          <label><input type="checkbox" value="dgsi" checked> Tribunais (DGSI)</label>
-          <label><input type="checkbox" value="tc" checked> Trib. Constitucional</label>
-          <label><input type="checkbox" value="erc" checked> ERC</label>
-          <label><input type="checkbox" value="cnpd" checked> CNPD</label>
-          <label><input type="checkbox" value="cada"> CADA</label>
-          <label><input type="checkbox" value="provedor"> Provedor de Justiça</label>
-          <label><input type="checkbox" value="mp"> Ministério Público</label>
-          <label><input type="checkbox" value="eurlex"> Direito da UE</label>
-          <label><input type="checkbox" value="tedh"> TEDH</label>
-        </fieldset>
-        </details>
-        <div id="lawResult" aria-live="polite">Descobre que leis, acórdãos e deliberações podem ser relevantes para uma palavra ou expressão (só português).</div>
-      </section>
-
       <section class="translation" id="tool-translation" data-tool="translation">
         <div class="def-head">
           <h2>Tradução (DeepL)</h2>
@@ -189,6 +221,6 @@
   <script src="config.js"></script>
   <script src="vendor/hunspell.js"></script>
   <script src="modelos.js?v=1"></script>
-  <script src="app.js?v=20"></script>
+  <script src="app.js?v=22"></script>
 </body>
 </html>
