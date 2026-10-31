@@ -36,7 +36,7 @@ async function resolveNid(name) {
 
 // ── Estrutura ────────────────────────────────────────────────────────────────────────────────────
 const LEVEL = [/^PARTE\b/i, /^LIVRO\b/i, /^T[IÍ]TULO\b/i, /^CAP[IÍ]TULO\b/i, /^SEC[CÇ][AÃ]O\b/i, /^SUBSEC[CÇ][AÃ]O\b/i];
-const ARTICLE = /^## Artigo\s+(\d+)\.?\s*[º°o]?(?:\s*-?\s*([A-Za-z]{1,3}))?\.?(?:\s+—\s+(.*))?$/;
+const ARTICLE = /^## Artigo\s+(\d+)\.?\s*[º°o]?(?:\s*-?\s*([A-Za-z]{1,3}))?\.?(?:\s+—\s+(.*))?$/i;
 
 export function parse(text) {
   const lines = text.split('\n\n');

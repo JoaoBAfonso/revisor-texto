@@ -3,7 +3,7 @@ import { tokens } from './proxy/corpus/tokens.mjs';
 
 const root = document.getElementById('brain');
 const DATA = 'data/lei';
-const REV = '4';
+const REV = '5';
 
 const h = (tag, props, ...kids) => {
   const el = document.createElement(tag);
@@ -162,9 +162,39 @@ function disclaimer() {
 // ── Vistas ──────────────────────────────────────────────────────────────────────────────────────
 const docList = (docs) => h('ul', { class: 'brain-docs' }, docs.map((d) => h('li', null,
   h('a', { href: hashFor(d.id) }, d.name), h('span', null, `${d.n} artigos`))));
-// Os graus baixos têm centenas de diplomas: ficam recolhidos, por ordem cronológica inversa.
-const tierDocs = (docs) => (docs.length <= 12 ? docList(docs)
-  : h('details', { class: 'brain-fold' }, h('summary', null, `Ver os ${docs.length} diplomas`), docList(docs)));
+// Os graus baixos têm centenas de diplomas: a página mostra os primeiros e liga a uma página própria com todos.
+const TIER_PREVIEW = 8;
+const tierDocs = (docs) => (docs.length <= TIER_PREVIEW + 2 ? docList(docs)
+  : [docList(docs.slice(0, TIER_PREVIEW)),
+    h('a', { class: 'brain-more-docs', href: hashFor('grau', docs[0].rank) }, `Ver os ${docs.length} diplomas deste grau →`)]);
+
+// Lista filtrável: o texto escrito esconde as linhas que não coincidem.
+function filterable(list, label, placeholder) {
+  const input = h('input', { type: 'search', maxlength: '80', placeholder, 'aria-label': label, autocomplete: 'off', class: 'brain-filter' });
+  const empty = h('p', { class: 'brain-empty', hidden: true }, 'Nada encontrado.');
+  input.addEventListener('input', () => {
+    const words = plain(input.value).split(' ').filter(Boolean);
+    let shown = 0;
+    for (const li of list.children) { const ok = words.every((w) => li.dataset.k.includes(w)); li.hidden = !ok; if (ok) shown++; }
+    empty.hidden = shown > 0;
+  });
+  return h('div', { class: 'brain-filterable' }, input, list, empty);
+}
+function viewTier(rank) {
+  const r = meta.ranks.find((x) => x.rank === rank);
+  if (!r) return [h('p', { class: 'brain-empty' }, 'Grau não encontrado.'), h('a', { href: hashFor() }, '← Legislação')];
+  const docs = meta.docs.filter((d) => d.rank === rank);
+  const list = h('ul', { class: 'brain-docs' }, docs.map((d) => h('li', { 'data-k': plain(`${d.name} ${d.title}`) },
+    h('a', { href: hashFor(d.id) }, d.name), h('span', null, `${d.n} artigos`))));
+  return [
+    searchBox(),
+    h('header', { class: 'brain-dochead', 'data-rank': rank },
+      h('span', { class: 'brain-rank' }, `Grau ${rank}`), h('h3', null, r.name), h('p', { class: 'brain-tier-note' }, `${r.note} · ${docs.length} diplomas`)),
+    filterable(list, 'Filtrar diplomas', 'Filtrar estes diplomas por nome ou número…'),
+    h('nav', { class: 'brain-pager' }, h('a', { href: hashFor() }, '← Hierarquia')),
+    disclaimer(),
+  ];
+}
 function viewHome() {
   const byRank = meta.ranks.map((r) => ({ ...r, docs: meta.docs.filter((d) => d.rank === r.rank) })).filter((r) => r.docs.length);
   return [
@@ -247,23 +277,11 @@ function group(g, shown = 6) {
 }
 
 function hitCard({ g, d, i }) {
-  const [, n, t] = heads[g];
-  const holder = h('div', { class: 'brain-inline' });
-  const det = h('details', { class: 'brain-hit-body' },
-    h('summary', null, h('span', { class: 'brain-ref' }, `${d.short}, art. `), h('span', { class: 'brain-art' }, n), ' ', h('span', { class: 'brain-title' }, t || '')),
-    holder);
-  let filled = false;
-  det.addEventListener('toggle', async () => {
-    if (!det.open || filled) return;
-    filled = true;
-    holder.append(loading('A abrir o artigo…'));
-    try {
-      const doc = await load(d.id);
-      const a = doc.arts[i];
-      holder.replaceChildren(articleText(a), h('a', { class: 'brain-open', href: art(d.id, a.k) }, 'Abrir no contexto do diploma →'));
-    } catch (e) { holder.replaceChildren(h('p', { class: 'brain-empty' }, e.message)); filled = false; }
-  });
-  return det;
+  const [k, n, t] = heads[g];
+  return h('a', { class: 'brain-hit-link', href: art(d.id, k) },
+    h('span', { class: 'brain-ref' }, `${d.short} · artigo ${n}`),
+    t ? h('span', { class: 'brain-title' }, t) : null,
+    h('span', { class: 'brain-go', 'aria-hidden': 'true' }, '→'));
 }
 
 function viewDoc(id, k) {
@@ -271,8 +289,9 @@ function viewDoc(id, k) {
   if (!d) return [h('p', { class: 'brain-empty' }, 'Diploma não encontrado.'), h('a', { href: hashFor() }, '← Legislação')];
   const wrap = h('div', { class: 'brain-doc' }, loading('A abrir o diploma…'));
   load(id).then((doc) => {
-    const idx = k ? doc.arts.findIndex((a) => a.k === k) : -1;
-    wrap.replaceChildren(...(idx >= 0 ? viewArticle(d, doc, idx) : viewToc(d, doc, k)).filter(Boolean));
+    const sec = /^sec-(\d+)$/.exec(k || '');
+    const idx = k && !sec ? doc.arts.findIndex((a) => a.k === k) : -1;
+    wrap.replaceChildren(...(idx >= 0 ? viewArticle(d, doc, idx) : sec ? viewSection(d, doc, +sec[1]) : viewToc(d, doc, k)).filter(Boolean));
     window.scrollTo(0, 0);
   }).catch((e) => wrap.replaceChildren(h('p', { class: 'brain-empty' }, e.message)));
   return [searchBox(), wrap];
@@ -286,32 +305,95 @@ function docHeader(d) {
     h('a', { class: 'brain-open', href: d.url, target: '_blank', rel: 'noopener noreferrer' }, `Fonte: ${/diariodarepublica/.test(d.url) ? 'DRE' : 'PGDL'} ↗`));
 }
 
-function viewToc(d, doc, missing) {
+// Estrutura de um diploma: filhos de cada secção, artigos por secção e contagens/intervalos da subárvore.
+function structure(doc) {
+  if (doc._st) return doc._st;
   const kids = new Map();
-  doc.secs.forEach((s, i) => { const p = s.u; (kids.get(p) || kids.set(p, []).get(p)).push(i); });
+  doc.secs.forEach((s, i) => { const p = s.u ?? -1; (kids.get(p) || kids.set(p, []).get(p)).push(i); });
   const arts = new Map();
-  doc.arts.forEach((a) => { (arts.get(a.s) || arts.set(a.s, []).get(a.s)).push(a); });
-  const artList = (list) => h('ul', { class: 'brain-arts' }, list.map((a) => h('li', null,
-    h('a', { href: art(d.id, a.k) }, h('b', null, a.n), a.t ? ` ${a.t}` : ''))));
-  const node = (i) => {
-    const s = doc.secs[i];
-    const inner = [...(kids.get(i) || []).map(node), arts.get(i) ? artList(arts.get(i)) : null];
-    return h('details', { class: 'brain-sec', 'data-l': s.l }, h('summary', null, s.n), inner);
+  doc.arts.forEach((a) => { const p = a.s ?? -1; (arts.get(p) || arts.set(p, []).get(p)).push(a); });
+  const span = new Map();
+  const walk = (i) => {
+    const own = arts.get(i) || [];
+    let n = own.length, first = own[0], last = own[own.length - 1];
+    for (const c of kids.get(i) || []) {
+      const r = walk(c);
+      n += r.n;
+      if (r.first && (!first || doc.arts.indexOf(r.first) < doc.arts.indexOf(first))) first = r.first;
+      if (r.last && (!last || doc.arts.indexOf(r.last) > doc.arts.indexOf(last))) last = r.last;
+    }
+    const r = { n, first, last };
+    span.set(i, r);
+    return r;
   };
-  const top = (kids.get(-1) || []).map(node);
+  (kids.get(-1) || []).forEach(walk);
+  return (doc._st = { kids, arts, span });
+}
+
+const artList = (d, list) => h('ul', { class: 'brain-arts' }, list.map((a) => h('li', { 'data-k': plain(`${a.n} ${a.t || ''}`) },
+  h('a', { href: art(d.id, a.k) }, h('b', null, a.n), a.t ? h('span', null, a.t) : null))));
+
+function secCards(d, doc, ids) {
+  const { span } = structure(doc);
+  return h('ol', { class: 'brain-cards' }, ids.map((i, pos) => {
+    const s = doc.secs[i], r = span.get(i);
+    const range = r.first ? (r.first === r.last ? r.first.n : `${r.first.n} a ${r.last.n}`) : '';
+    return h('li', null, h('a', { class: 'brain-card', href: hashFor(d.id, `sec-${i}`) },
+      h('span', { class: 'brain-card-n' }, String(pos + 1).padStart(2, '0')),
+      h('strong', null, s.n),
+      h('small', null, r.n ? `${r.n} artigos · ${range}` : 'Sem artigos')));
+  }));
+}
+
+function viewToc(d, doc, missing) {
+  const { kids, arts } = structure(doc);
+  const top = kids.get(-1) || [];
+  const loose = arts.get(-1) || [];
+  const firstSec = top.length ? doc.arts.indexOf(structure(doc).span.get(top[0]).first) : -1;
+  const head = firstSec < 0 ? [] : loose.filter((a) => doc.arts.indexOf(a) < firstSec);
+  const tail = loose.filter((a) => !head.includes(a));
+  const first = doc.arts[0];
+  const searchList = filterable(artList(d, doc.arts), 'Filtrar artigos', `Procurar entre os ${doc.arts.length} artigos (número ou palavra)…`);
   return [
     docHeader(d),
     missing ? h('p', { class: 'brain-empty' }, `O artigo ${missing} não existe neste diploma.`) : null,
-    top.length ? h('div', { class: 'brain-toc' }, top) : null,
-    arts.get(undefined) || arts.get(-1) ? artList(arts.get(undefined) || arts.get(-1)) : null,
-    !top.length ? artList(doc.arts) : null,
+    first ? h('a', { class: 'brain-start', href: art(d.id, first.k) }, `Começar a ler no ${first.n} →`) : null,
+    top.length && head.length ? h('section', { class: 'brain-block' }, h('h3', null, 'Artigos iniciais'), artList(d, head)) : null,
+    top.length ? h('section', { class: 'brain-block' }, h('h3', null, 'Estrutura'), secCards(d, doc, top)) : null,
+    top.length && tail.length ? h('section', { class: 'brain-block' }, h('h3', null, 'Outros artigos'), artList(d, tail)) : null,
+    top.length ? null : h('section', { class: 'brain-block' }, h('h3', null, `${doc.arts.length} artigos`), searchList),
+    h('nav', { class: 'brain-pager' }, h('a', { href: hashFor() }, '← Hierarquia')),
+    disclaimer(),
+  ];
+}
+
+function viewSection(d, doc, i) {
+  const s = doc.secs[i];
+  if (!s) return viewToc(d, doc, null);
+  const { kids, arts, span } = structure(doc);
+  const sub = kids.get(i) || [];
+  const own = arts.get(i) || [];
+  const sibs = kids.get(s.u ?? -1) || [];
+  const at = sibs.indexOf(i);
+  const link = (j, dir) => (j == null ? h('span') : h('a', { href: hashFor(d.id, `sec-${j}`) }, dir < 0 ? `← ${doc.secs[j].n}` : `${doc.secs[j].n} →`));
+  const total = span.get(i)?.n || 0;
+  const all = doc.arts.filter((a) => { for (let p = a.s; p != null && p >= 0; p = doc.secs[p]?.u) if (p === i) return true; return false; });
+  return [
+    docHeader(d),
+    h('nav', { class: 'brain-crumbs', 'aria-label': 'Localização' }, h('a', { href: hashFor(d.id) }, d.short),
+      sectionPath(doc, { s: i }).map((p, n, arr) => (n === arr.length - 1 ? h('span', null, p.n) : h('a', { class: 'crumb', href: hashFor(d.id, `sec-${p.i}`) }, p.n)))),
+    h('header', { class: 'brain-sechead' }, h('small', null, `${total} artigos`), h('h3', null, s.n),
+      all[0] ? h('a', { class: 'brain-start', href: art(d.id, all[0].k) }, `Começar a ler no ${all[0].n} →`) : null),
+    sub.length ? h('section', { class: 'brain-block' }, h('h3', null, 'Divisões'), secCards(d, doc, sub)) : null,
+    own.length ? h('section', { class: 'brain-block' }, h('h3', null, sub.length ? 'Artigos desta divisão' : 'Artigos'), artList(d, own)) : null,
+    h('nav', { class: 'brain-pager', 'aria-label': 'Divisões vizinhas' }, link(sibs[at - 1], -1), h('a', { href: hashFor(d.id) }, 'Estrutura'), link(sibs[at + 1], 1)),
     disclaimer(),
   ];
 }
 
 function sectionPath(doc, a) {
   const path = [];
-  for (let i = a.s; i != null && i >= 0; i = doc.secs[i]?.u) path.unshift(doc.secs[i].n);
+  for (let i = a.s; i != null && i >= 0; i = doc.secs[i]?.u) path.unshift({ n: doc.secs[i].n, i });
   return path;
 }
 
@@ -328,7 +410,8 @@ function viewArticle(d, doc, i) {
   const cited = (refs[key] || []).filter((r) => r !== key);
   return [
     docHeader(d),
-    h('nav', { class: 'brain-crumbs', 'aria-label': 'Localização' }, h('a', { href: hashFor(d.id) }, d.short), sectionPath(doc, a).map((s) => h('span', null, s))),
+    h('nav', { class: 'brain-crumbs', 'aria-label': 'Localização' }, h('a', { href: hashFor(d.id) }, d.short),
+      sectionPath(doc, a).map((s) => h('a', { class: 'crumb', href: hashFor(d.id, `sec-${s.i}`) }, s.n))),
     h('article', { class: 'brain-article' },
       h('h4', null, h('small', null, `${d.short} · Artigo`), ' ', a.n),
       a.t ? h('p', { class: 'brain-epigraph' }, a.t) : null,
@@ -366,6 +449,7 @@ async function render() {
     let content;
     if (!parts.length) content = viewHome();
     else if (parts[0] === 'busca') content = viewSearch(parts.slice(1).join('/'));
+    else if (parts[0] === 'grau') content = viewTier(Number(parts[1]));
     else content = viewDoc(parts[0], parts[1]);
     root.replaceChildren(...content.filter(Boolean));
     window.scrollTo(0, 0);
