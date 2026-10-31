@@ -7,7 +7,7 @@
   <meta name="color-scheme" content="light">
   <meta name="description" content="Revisor de texto independente: ortografia, acentuação, definições, tradução, dúvidas de língua, notícias e legislação.">
   <title>Revisor de Texto</title>
-  <link rel="stylesheet" href="style.css?v=17">
+  <link rel="stylesheet" href="style.css?v=18">
 </head>
 <body>
   <a class="skip" href="#text">Saltar para o editor</a>
@@ -64,7 +64,15 @@
     </section>
 
     <div class="tools">
-      <section class="definition">
+      <div class="tabs" role="tablist" aria-label="Ferramentas">
+        <button type="button" class="tab" role="tab" id="tab-definition" data-tool="definition" aria-controls="tool-definition">Definição</button>
+        <button type="button" class="tab" role="tab" id="tab-doubts" data-tool="doubts" aria-controls="doubts">Dúvidas</button>
+        <button type="button" class="tab" role="tab" id="tab-news" data-tool="news" aria-controls="news">Notícias</button>
+        <button type="button" class="tab" role="tab" id="tab-law" data-tool="law" aria-controls="law">Direito</button>
+        <button type="button" class="tab" role="tab" id="tab-translation" data-tool="translation" aria-controls="tool-translation">Tradução</button>
+      </div>
+
+      <section class="definition" id="tool-definition" data-tool="definition" role="tabpanel" aria-labelledby="tab-definition">
         <div class="def-head">
           <h2>Definição</h2>
           <button id="define" type="button" disabled>Ver definição da palavra selecionada</button>
@@ -72,7 +80,7 @@
         <div id="definition" aria-live="polite">Seleciona uma palavra no texto para ver o significado (português: Priberam; inglês: Wiktionary).</div>
       </section>
 
-      <section class="doubts" id="doubts">
+      <section class="doubts" id="doubts" data-tool="doubts" role="tabpanel" aria-labelledby="tab-doubts">
         <div class="def-head">
           <h2>Dúvidas (Ciberdúvidas)</h2>
         </div>
@@ -83,7 +91,7 @@
         <div id="doubtsResult" aria-live="polite">Seleciona uma palavra ou expressão no texto, ou escreve-a acima, para ver dúvidas semelhantes já respondidas (só português).</div>
       </section>
 
-      <section class="doubts news" id="news">
+      <section class="doubts news" id="news" data-tool="news" role="tabpanel" aria-labelledby="tab-news">
         <div class="def-head">
           <h2>Notícias</h2>
         </div>
@@ -91,8 +99,9 @@
           <input id="newsQuery" type="search" maxlength="80" placeholder="Palavra ou expressão…" aria-label="Palavra ou expressão a pesquisar em sites de notícias" autocomplete="off">
           <button id="newsBtn" type="submit" disabled>Pesquisar</button>
         </form>
-        <fieldset class="news-sites" id="newsSites">
-          <legend>Sites</legend>
+        <details class="sources">
+          <summary data-label="Sites"></summary>
+          <fieldset class="news-sites" id="newsSites" aria-label="Sites de notícias">
           <label><input type="checkbox" value="publico" checked> Público</label>
           <label><input type="checkbox" value="expresso" checked> Expresso</label>
           <label><input type="checkbox" value="rtp" checked> RTP</label>
@@ -107,10 +116,11 @@
           <label><input type="checkbox" value="lusa"> Lusa</label>
           <label><input type="checkbox" value="poligrafo" checked> Polígrafo (verificação)</label>
         </fieldset>
+        </details>
         <div id="newsResult" aria-live="polite">Vê como uma palavra ou expressão é usada em notícias recentes (só português).</div>
       </section>
 
-      <section class="doubts news law" id="law">
+      <section class="doubts news law" id="law" data-tool="law" role="tabpanel" aria-labelledby="tab-law">
         <div class="def-head">
           <h2>Direito e legislação</h2>
         </div>
@@ -118,8 +128,9 @@
           <input id="lawQuery" type="search" maxlength="80" placeholder="Palavra, expressão ou diploma (ex.: Lei n.º 2/99)…" aria-label="Palavra, expressão ou diploma a pesquisar em fontes jurídicas" autocomplete="off">
           <button id="lawBtn" type="submit" disabled>Pesquisar</button>
         </form>
-        <fieldset class="news-sites" id="lawSources">
-          <legend>Fontes</legend>
+        <details class="sources">
+          <summary data-label="Fontes"></summary>
+          <fieldset class="news-sites" id="lawSources" aria-label="Fontes jurídicas">
           <label><input type="checkbox" value="dre" checked> Diário da República</label>
           <label><input type="checkbox" value="pgdl" checked> PGDL</label>
           <label><input type="checkbox" value="dgsi" checked> Tribunais (DGSI)</label>
@@ -132,10 +143,11 @@
           <label><input type="checkbox" value="eurlex"> Direito da UE</label>
           <label><input type="checkbox" value="tedh"> TEDH</label>
         </fieldset>
+        </details>
         <div id="lawResult" aria-live="polite">Descobre que leis, acórdãos e deliberações podem ser relevantes para uma palavra ou expressão (só português).</div>
       </section>
 
-      <section class="translation">
+      <section class="translation" id="tool-translation" data-tool="translation" role="tabpanel" aria-labelledby="tab-translation">
         <div class="def-head">
           <h2>Tradução (DeepL)</h2>
           <div class="tr-controls">
@@ -184,6 +196,6 @@
   <script src="config.js"></script>
   <script src="vendor/hunspell.js"></script>
   <script src="modelos.js?v=1"></script>
-  <script src="app.js?v=18"></script>
+  <script src="app.js?v=19"></script>
 </body>
 </html>

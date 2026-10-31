@@ -549,6 +549,7 @@
   async function showDefinition() {
     const word = selectedWord();
     if (!word) return;
+    showTool('definition');
     const lang = langEl.value;
     const key = `${lang}:${word.toLowerCase()}`;
     if (definitionCache.has(key)) return renderDefinition(definitionCache.get(key), lang);
@@ -636,9 +637,31 @@
     input.addEventListener('input', sync);
     return {
       section, input, result, say, sync, run,
-      ask(term) { input.value = term; sync(); section.scrollIntoView({ block: 'start', behavior: 'smooth' }); run(); },
+      ask(term) { input.value = term; sync(); showTool(section.dataset.tool); section.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); run(); },
     };
   }
+
+  // Separadores das ferramentas: um painel visível de cada vez
+  const toolTabs = [...document.querySelectorAll('.tools > .tabs .tab')];
+  const toolPanels = [...document.querySelectorAll('.tools > section[data-tool]')];
+  function showTool(name, { focus = false } = {}) {
+    for (const tab of toolTabs) {
+      const on = tab.dataset.tool === name;
+      tab.setAttribute('aria-selected', String(on));
+      tab.tabIndex = on ? 0 : -1;
+      if (on && focus) tab.focus();
+    }
+    for (const panel of toolPanels) panel.hidden = panel.dataset.tool !== name;
+    try { sessionStorage.setItem('tool', name); } catch { /* ignorar */ }
+  }
+  toolTabs.forEach((tab, i) => {
+    tab.addEventListener('click', () => showTool(tab.dataset.tool));
+    tab.addEventListener('keydown', (e) => {
+      const step = { ArrowRight: 1, ArrowLeft: -1 }[e.key];
+      if (step) { e.preventDefault(); showTool(toolTabs[(i + step + toolTabs.length) % toolTabs.length].dataset.tool, { focus: true }); }
+    });
+  });
+  showTool((() => { try { return sessionStorage.getItem('tool'); } catch { return null; } })() || 'definition');
 
   const doubts = createSearch({
     section: $('doubts'), form: $('doubtsForm'), input: $('doubtsQuery'), button: $('doubtsBtn'), result: $('doubtsResult'),

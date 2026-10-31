@@ -152,18 +152,29 @@
   main {
     flex: 1;
     display: grid;
-    grid-template-columns: minmax(0, 1fr) minmax(0, 380px);
+    grid-template-columns: minmax(0, 1fr) minmax(0, 340px);
     grid-template-areas: "editor aside" "tools aside";
     grid-template-rows: auto 1fr;
     gap: var(--s5) var(--s6);
     align-items: start;
     width: 100%;
-    max-width: 1280px;
+    max-width: 1440px;
     margin: 0 auto;
     padding: var(--s6) max(var(--gutter), env(safe-area-inset-right)) var(--s6) max(var(--gutter), env(safe-area-inset-left));
   }
   .editor { grid-area: editor; min-width: 0; }
-  .tools { grid-area: tools; min-width: 0; display: grid; gap: var(--s5); }
+  .tools { grid-area: tools; min-width: 0; display: grid; gap: 0; }
+  .tools > section[hidden] { display: none; }
+  .tabs { display: flex; gap: 2px; overflow-x: auto; scrollbar-width: none; border-bottom: 3px solid var(--ink); }
+  .tabs::-webkit-scrollbar { display: none; }
+  .tab {
+    flex: 1 0 auto; min-height: var(--tap); padding: var(--s2) var(--s4);
+    border: 0; background: var(--sand); color: var(--ink);
+    font-size: .85rem; letter-spacing: .06em; text-transform: uppercase;
+  }
+  .tab[aria-selected="true"] { background: var(--ink); color: #fff; }
+  @media (hover: hover) { .tab[aria-selected="false"]:hover { background: var(--orange); color: #fff; } }
+  .tab:focus-visible { outline: 3px solid var(--orange); outline-offset: -3px; }
   aside { grid-area: aside; min-width: 0; }
 
   @media (max-width: 900px) {
@@ -311,6 +322,10 @@
   #doubtsResult .src, #newsResult .src, #lawResult .src { margin: var(--s3) 0 0; font-size: .8rem; }
 
   .news-sites { display: flex; flex-wrap: wrap; gap: var(--s2) var(--s4); margin: 0 0 var(--s4); padding: 0; border: 0; min-width: 0; font-size: .85rem; }
+  details.sources { margin: 0 0 var(--s4); padding: 0; border: 0; }
+  details.sources > summary { padding: var(--s2) 0; font-size: .75rem; letter-spacing: .06em; }
+  details.sources > summary::before { content: attr(data-label); }
+  details.sources .news-sites { margin: var(--s2) 0 0; }
   .news-sites legend { margin-bottom: var(--s2); padding: 0; font-size: .75rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; }
   .news-sites label { display: inline-flex; align-items: center; gap: var(--s2); min-height: 1.75rem; cursor: pointer; }
 
