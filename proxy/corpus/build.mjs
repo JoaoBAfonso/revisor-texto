@@ -159,7 +159,13 @@ if (!INDEX_ONLY) {
 // ── Índice ───────────────────────────────────────────────────────────────────────────────────────
 const DRE_DOCS = join(dirname(fileURLToPath(import.meta.url)), 'dre', 'docs.json');
 const dreDocs = existsSync(DRE_DOCS) ? JSON.parse(readFileSync(DRE_DOCS, 'utf8')) : [];
-const entries = [...CATALOG, ...dreDocs.filter((d) => !CATALOG.some((c) => c.id === d.id))].filter((d) => existsSync(file(d.id)));
+// Direito da UE (corpus/eu.mjs): as siglas e referências ficam também como alias para o resolver do guia.
+const EU_DOCS = join(dirname(fileURLToPath(import.meta.url)), 'eu', 'docs.json');
+const euDocs = existsSync(EU_DOCS) ? JSON.parse(readFileSync(EU_DOCS, 'utf8')) : [];
+for (const d of euDocs) if (d.alias?.length) ALIASES.push([d.id, new RegExp(`^(?:${d.alias.join('|')})\\b`, 'i')]);
+if (existsSync(file('d376273'))) ALIASES.push(['d376273', /^(?:RGCO|Regime Geral das Contra-?Ordena[çc][õo]es)\b/i]);
+const extra = [...euDocs, ...dreDocs];
+const entries = [...CATALOG, ...extra.filter((d) => !CATALOG.some((c) => c.id === d.id))].filter((d) => existsSync(file(d.id)));
 const entryOf = new Map(entries.map((e) => [e.id, e]));
 const docs = entries.map((d) => JSON.parse(readFileSync(file(d.id), 'utf8')));
 // Texto integral só nos diplomas até à lei ordinária; os restantes (portarias, resoluções…) pesquisam-se por título e epígrafe.
