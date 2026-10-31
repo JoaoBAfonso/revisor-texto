@@ -219,9 +219,9 @@ async function serper(query, allowed, env) {
   const res = await fetch('https://google.serper.dev/search', {
     method: 'POST',
     headers: { 'X-API-KEY': env.SERPER_API_KEY, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ q: `${query} (${sites})`, gl: 'pt', hl: 'pt-pt', num: 20 }),
+    body: JSON.stringify({ q: `${query} (${sites})`, gl: 'pt', hl: 'pt-pt', num: 10 }),
   });
-  if (!res.ok) throw new Error(`Serper respondeu ${res.status}`);
+  if (!res.ok) throw new Error(`Serper respondeu ${res.status}: ${(await res.text()).slice(0, 120)}`);
   const data = await res.json();
   return (data.organic || []).flatMap((o) => {
     try { return [toItem(new URL(o.link), o.title || '', o.snippet || '', allowed)].filter(Boolean); } catch { return []; }
