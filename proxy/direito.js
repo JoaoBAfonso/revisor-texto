@@ -72,6 +72,7 @@ export function interpret(term) {
 
 const siteOf = (host) => Object.keys(LAW_SOURCES)
   .find((k) => LAW_SOURCES[k].domains.some((d) => host === d || host.endsWith(`.${d}`)));
+export const isLawHost = (host) => Boolean(siteOf(host));
 
 const SUFFIX = /\s*(?:[-–|]|\.{3}|…)\s*(?:DR|Di[aá]rio da Rep[uú]blica(?: Eletr[oó]nico)?|DGSI|PGDL|IGFEJ(?: - Bases Jur[ií]dico[^|]*)?|Bases Jur[ií]dico[^|]*)\s*$/i;
 

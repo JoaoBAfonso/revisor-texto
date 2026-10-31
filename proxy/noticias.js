@@ -1,6 +1,7 @@
 // Pesquisa em sites de notícias através do RSS do Bing Notícias, que dá o endereço direto e um resumo.
 // Devolve títulos e resumos, nunca o artigo completo.
 import { toText, decode } from './ciberduvidas.js';
+import { readHtml } from './texto.js';
 
 const UA = 'Mozilla/5.0 (compatible; RevisorDeTexto/1.0)';
 const PER_SITE = 6;
@@ -54,7 +55,7 @@ async function searchSite(term, key) {
   return parseRss(await res.text(), key);
 }
 
-const EXCERPT_CHARS = 1800;
+const MAX_CHARS = 80000;
 const BROWSER_UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36';
 
 const metaContent = (html, name) => {
@@ -84,14 +85,15 @@ function jsonLdArticle(html) {
   return null;
 }
 
-// Devolve só um excerto do que o site serve publicamente (autor, descrição e primeiros parágrafos).
+// Devolve o texto completo que o site serve publicamente (autor, descrição e todos os parágrafos).
+// Em páginas com paywall, o site só entrega o que mostra a qualquer visitante.
 export async function fetchArticle(url) {
   const u = new URL(url);
   if (!/^https?:$/.test(u.protocol) || !siteOf(u.hostname)) throw new Error('Site não permitido');
   const res = await fetch(u.href, { headers: { 'User-Agent': BROWSER_UA, 'Accept-Language': 'pt-PT,pt;q=0.9' }, redirect: 'follow' });
   if (!res.ok) throw new Error(`O site respondeu ${res.status}`);
   if (!siteOf(new URL(res.url).hostname)) throw new Error('Redirecionamento não permitido');
-  const html = (await res.text()).slice(0, 600000);
+  const html = await readHtml(res);
   const ld = jsonLdArticle(html);
 
   const authors = [...new Set([
@@ -110,9 +112,9 @@ export async function fetchArticle(url) {
     let sum = 0;
     const pre = /<p[^>]*>([\s\S]*?)<\/p>/gi;
     let p;
-    while ((p = pre.exec(scope)) && sum < EXCERPT_CHARS) {
+    while ((p = pre.exec(scope)) && sum < MAX_CHARS) {
       const t = decode(toText(p[1])).replace(/\u00ad/g, '').trim();
-      if (t.length < 40 || !/[.!?…»”"):]$/.test(t) || out.includes(t)) continue;
+      if (t.length < 25 || (t.length < 70 && !/[.!?…»”"):]$/.test(t)) || out.includes(t)) continue;
       out.push(t);
       sum += t.length;
     }
@@ -122,8 +124,9 @@ export async function fetchArticle(url) {
   const paragraphs = best.out;
 
   let text = paragraphs.join('\n\n');
-  if (!text && ld?.articleBody) text = toText(ld.articleBody);
-  if (text.length > EXCERPT_CHARS) text = `${text.slice(0, EXCERPT_CHARS).replace(/\s+\S*$/, '')}…`;
+  const fullBody = ld?.articleBody ? toText(ld.articleBody) : '';
+  if (fullBody.length > text.length) text = fullBody;
+  if (text.length > MAX_CHARS) text = `${text.slice(0, MAX_CHARS).replace(/\s+\S*$/, '')}…`;
   return { url: res.url, authors, description, text };
 }
 

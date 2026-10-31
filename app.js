@@ -23,7 +23,7 @@
 
   const store = {
     get(key, fallback) { try { return JSON.parse(localStorage.getItem(key)) ?? fallback; } catch { return fallback; } },
-    set(key, value) { localStorage.setItem(key, JSON.stringify(value)); },
+    set(key, value) { try { localStorage.setItem(key, JSON.stringify(value)); } catch { /* armazenamento cheio ou bloqueado */ } },
   };
   let ignored = new Set(); // ignorados só nesta sessão
 
@@ -528,36 +528,22 @@
 
   function renderDefinition(r, lang) {
     const source = SOURCES[lang];
-    definitionEl.replaceChildren();
-    const h = document.createElement('h3');
-    h.textContent = r.word;
-    definitionEl.append(h);
-    if (!r.found) {
-      const msg = lang === 'en' ? 'Word not found in the dictionary.' : 'Palavra não encontrada no dicionário.';
-      definitionEl.append(Object.assign(document.createElement('p'), { textContent: msg }));
-    }
-    if (r.forms) definitionEl.append(Object.assign(document.createElement('p'), { className: 'forms', textContent: r.forms }));
-    for (const e of r.entries) {
-      if (e.category) definitionEl.append(Object.assign(document.createElement('div'), { className: 'cat', textContent: e.category }));
-      const ol = document.createElement('ol');
-      ol.style.listStyle = 'none';
-      ol.style.paddingLeft = '0';
-      const shown = lang === 'en' ? e.definitions.slice(0, MAX_DEFS_PER_ENTRY) : e.definitions;
-      shown.forEach((d, i) => ol.append(Object.assign(document.createElement('li'), { textContent: lang === 'en' ? `${i + 1}. ${d}` : d })));
-      if (shown.length < e.definitions.length) {
-        ol.append(Object.assign(document.createElement('li'), { className: 'forms', textContent: `… mais ${e.definitions.length - shown.length} definições na fonte.` }));
-      }
-      definitionEl.append(ol);
-    }
-    const src = document.createElement('p');
-    src.className = 'src';
-    const a = document.createElement('a');
-    a.href = source.url(r.word);
-    a.target = '_blank';
-    a.rel = 'noopener';
-    a.textContent = `Ver no ${source.name}`;
-    src.append(a);
-    definitionEl.append(src);
+    const notFound = lang === 'en' ? 'Word not found in the dictionary.' : 'Palavra não encontrada no dicionário.';
+    definitionEl.replaceChildren(...[
+      h('h3', {}, r.word),
+      r.found ? null : h('p', {}, notFound),
+      r.forms ? h('p', { class: 'forms' }, r.forms) : null,
+      r.entries.map((e) => {
+        const shown = lang === 'en' ? e.definitions.slice(0, MAX_DEFS_PER_ENTRY) : e.definitions;
+        return [
+          e.category ? h('div', { class: 'cat' }, e.category) : null,
+          h('ol', { style: 'list-style:none;padding-left:0' },
+            shown.map((d, i) => h('li', {}, lang === 'en' ? `${i + 1}. ${d}` : d)),
+            shown.length < e.definitions.length ? h('li', { class: 'forms' }, `… mais ${e.definitions.length - shown.length} definições na fonte.`) : null),
+        ];
+      }),
+      h('p', { class: 'src' }, h('a', { href: source.url(r.word), target: '_blank', rel: 'noopener' }, `Ver no ${source.name}`)),
+    ].flat(Infinity).filter(Boolean));
   }
 
   async function showDefinition() {
@@ -601,7 +587,7 @@
       else if (k in el) el[k] = v;
       else el.setAttribute(k, v);
     }
-    el.append(...kids.flat().filter((k) => k != null && k !== false));
+    el.append(...kids.flat(Infinity).filter((k) => k != null && k !== false));
     return el;
   };
   const extLink = (href, text) => h('a', { href, target: '_blank', rel: 'noopener noreferrer' }, text);
@@ -773,8 +759,8 @@
       const by = d?.authors?.length ? `Por ${d.authors.join(', ')}` : (loading ? 'A obter autor…' : 'Autor não indicado');
       const paragraphs = (d?.text || '').split('\n\n').filter(Boolean);
       if (!paragraphs.length) paragraphs.push(d?.description || r.description || 'Sem texto disponível. Abre a notícia no site original para a ler.');
-      const note = loading ? 'A carregar mais texto…'
-        : (d?.text ? 'Excerto do início da notícia. Para a ler na íntegra, abre-a no site original.' : '');
+      const note = loading ? 'A carregar o texto…'
+        : (d?.text ? 'Texto completo tal como o site o disponibiliza. Se faltar parte (por exemplo, conteúdo reservado a assinantes), abre a notícia no site original.' : '');
       answerBody.replaceChildren(
         h('p', { class: 'meta' }, [by, r.source, fmtDate(r.date)].filter(Boolean).join(' · ')),
         h('div', { class: 'question' }, paragraphs.map((t) => h('p', {}, t))),
@@ -801,13 +787,32 @@
 
   // Direito e legislação: o proxy interpreta o termo e devolve um guia (direitos, passos, prazos, entidades)
   // mais resultados de fontes oficiais.
-  function openLaw(r) {
-    openDialog({ title: r.title, label: `Abrir em ${r.source}`, url: r.url });
-    answerBody.replaceChildren(
-      h('p', { class: 'meta' }, [r.kind, r.source].join(' · ')),
-      h('div', { class: 'question' }, h('p', {}, r.description || 'Sem excerto disponível. Abre a fonte para ler o documento.')),
-      h('p', { class: 'meta' }, 'Excerto devolvido pelo motor de pesquisa. Confirma sempre o texto em vigor na fonte oficial.'),
-    );
+  // Mostra primeiro o excerto da pesquisa e, em seguida, substitui-o pelo texto integral obtido pelo proxy.
+  const HEADING = /^(LIVRO|T[IÍ]TULO|CAP[IÍ]TULO|SEC[CÇ][AÃ]O|SUBSEC[CÇ][AÃ]O|Artigo\s+\d+[.º°\w-]*|Art\.\s*\d+)/i;
+  async function openLaw(r) {
+    const signal = openDialog({ title: r.title, label: `Abrir em ${r.source}`, url: r.url });
+    const draw = (d, loading) => {
+      const full = d?.text?.split('\n\n').filter(Boolean) || [];
+      const paragraphs = full.length ? full : [r.description || 'Sem texto disponível. Abre a fonte para ler o documento.'];
+      const note = loading ? 'A carregar o texto integral…'
+        : full.length ? (d.truncated ? 'Texto muito longo: mostrado até ao limite. Abre a fonte para o resto.' : 'Texto integral obtido da fonte oficial. Confirma sempre a versão em vigor.')
+          : 'Esta fonte não permite mostrar o texto integral aqui (só funciona no próprio site). Mostramos o excerto da pesquisa; abre a fonte para ler tudo.';
+      answerBody.replaceChildren(
+        h('p', { class: 'meta' }, [r.kind, r.source].join(' · ')),
+        h('div', { class: 'question legal-text' }, paragraphs.map((t) => {
+          if (!full.length) return h('p', {}, t);
+          if (t.startsWith('# ')) return h('h4', { class: 'doc-title' }, t.slice(2));
+          return HEADING.test(t) && t.length < 80 ? h('h4', {}, t) : h('p', {}, t);
+        })),
+        h('p', { class: 'meta' }, note),
+      );
+    };
+    draw(null, true);
+    try {
+      draw(await getJson('/texto', { url: r.url }, { signal, keep: (d) => Boolean(d.text) }), false);
+    } catch (err) {
+      if (err.name !== 'AbortError') draw({}, false);
+    }
   }
 
   const lawList = (items, ordered = false) => h(ordered ? 'ol' : 'ul', {}, items.map((t) => h('li', {}, t)));
@@ -922,6 +927,8 @@
     ];
   }
 
+  // Fontes que só funcionam com JavaScript no próprio site: o texto integral não pode ser mostrado aqui.
+  const SITE_ONLY = new Set(['dre', 'eurlex', 'tedh']);
   function lawResults(results) {
     const groups = new Map();
     for (const r of results) {
@@ -933,7 +940,7 @@
       h('h3', {}, kind),
       h('ul', { class: 'doubt-list' }, items.map((r) => h('li', {},
         h('button', { type: 'button', class: 'link', onclick: () => openLaw(r) }, r.title),
-        h('span', { class: 'meta' }, r.source))))));
+        h('span', { class: 'meta' }, r.source, SITE_ONLY.has(r.site) ? ' · só no site de origem' : ' · texto integral aqui'))))));
   }
 
   function renderLaw(data) {
@@ -952,7 +959,7 @@
       tabs?.querySelectorAll('button').forEach((b, j) => b.setAttribute('aria-pressed', String(j === i)));
       syncs.length = 0;
       top.replaceChildren(...lawTop(topics[i], data, citation, scrollTo));
-      bottom.replaceChildren(...lawBottom(topics[i], values, onChange, syncs));
+      bottom.replaceChildren(...lawBottom(topics[i], values, onChange, syncs).filter(Boolean));
     }
     show(0);
     const found = lawSection('law-found', 'Fontes e resultados', 'Legislação, jurisprudência e decisões de entidades oficiais. Toca num resultado para ler o excerto.',
