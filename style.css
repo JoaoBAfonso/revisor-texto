@@ -781,5 +781,16 @@
   .brain-arts a:hover { background: var(--sand); }
   .brain-arts b { color: var(--orange-dark); font-family: var(--display); }
   .brain-arts a:not(:has(span)) { grid-template-columns: 1fr; }
+  .brain-juris { display: grid; gap: var(--s2); }
+  .brain-juris-note { margin: 0; font-size: .85rem; color: var(--muted); }
+  .brain-ac { border: 1px solid var(--line); background: var(--card); }
+  .brain-ac summary { cursor: pointer; padding: var(--s2) var(--s3); list-style: none; }
+  .brain-ac summary::before { content: "+"; font-family: var(--display); font-weight: 700; color: var(--orange-dark); margin-right: var(--s2); }
+  .brain-ac[open] summary::before { content: "–"; }
+  .brain-ac summary b { font-family: var(--display); text-transform: uppercase; letter-spacing: .5px; }
+  .brain-ac-meta { color: var(--muted); font-size: .85rem; }
+  .brain-ac blockquote { margin: 0; padding: var(--s2) var(--s3) var(--s3); border-top: 1px solid var(--line); display: grid; gap: var(--s2); max-width: 44rem; line-height: 1.6; }
+  .brain-ac blockquote p { margin: 0; overflow-wrap: anywhere; }
+  .brain-ac-src { margin: 0; padding: 0 var(--s3) var(--s3); font-size: .85rem; }
   .chip[href] { text-decoration: none; display: inline-block; }
 }

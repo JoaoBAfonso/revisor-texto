@@ -3,7 +3,7 @@ import { tokens } from './proxy/corpus/tokens.mjs';
 
 const root = document.getElementById('brain');
 const DATA = 'data/lei';
-const REV = '5';
+const REV = '6';
 
 const h = (tag, props, ...kids) => {
   const el = document.createElement(tag);
@@ -29,6 +29,13 @@ const load = (name) => {
 };
 
 const undelta = (list) => { let a = 0; return list.map((d) => (a += d)); };
+
+// Jurisprudência (data/juris/<diploma>.json, gerada por corpus/dgsi.mjs); nem todos os diplomas têm.
+const jurisCache = new Map();
+const juris = (id) => {
+  if (!jurisCache.has(id)) jurisCache.set(id, fetch(`data/juris/${id}.json?v=${REV}`).then((r) => (r.ok ? r.json() : null)).catch(() => null));
+  return jurisCache.get(id);
+};
 const hashFor = (...parts) => `#/direito/lei${parts.length ? `/${parts.map(encodeURIComponent).join('/')}` : ''}`;
 const art = (id, k) => hashFor(id, k);
 const ask = (q) => window.dispatchEvent(new CustomEvent('law-ask', { detail: q }));
@@ -397,6 +404,29 @@ function sectionPath(doc, a) {
   return path;
 }
 
+function jurisBlock(d, a) {
+  const box = h('section', { class: 'brain-block brain-juris', hidden: true });
+  juris(d.id).then((j) => {
+    const items = (j?.arts?.[a.k] || []).map((i) => j.acs[i]);
+    if (!items.length) return;
+    const pt = (iso) => iso.split('-').reverse().join('/');
+    box.hidden = false;
+    box.append(...[
+      h('h3', null, 'Jurisprudência'),
+      h('p', { class: 'brain-juris-note' }, `${items.length === 1 ? '1 acórdão cita' : `${items.length} acórdãos citam`} este artigo no sumário (fonte: DGSI).`),
+      ...items.slice(0, 8).map((ac) => h('details', { class: 'brain-ac' },
+        h('summary', null,
+          h('b', null, `${ac.t} · ${pt(ac.d)}`),
+          ac.m ? h('span', { class: 'brain-ac-meta' }, ` · ${ac.m.toLowerCase()}`) : null,
+          ac.dec ? h('span', { class: 'brain-ac-meta' }, ` — ${ac.dec.toLowerCase()}`) : null),
+        h('blockquote', null, ac.s.split('\n').map((p) => h('p', null, p))),
+        h('p', { class: 'brain-ac-src' }, h('a', { href: `http://www.dgsi.pt${ac.u}`, target: '_blank', rel: 'noopener' }, `Texto integral no DGSI — proc. ${ac.p}`)))),
+      items.length > 8 ? h('p', { class: 'brain-juris-note' }, `Mostram-se os 8 mais recentes de ${items.length}.`) : null,
+    ].filter(Boolean));
+  }).catch(() => {});
+  return box;
+}
+
 function viewArticle(d, doc, i) {
   const a = doc.arts[i];
   const prev = doc.arts[i - 1];
@@ -418,6 +448,7 @@ function viewArticle(d, doc, i) {
       articleText(a)),
     a.r.length ? h('section', { class: 'brain-block' }, h('h3', null, 'Este artigo remete para'), h('div', { class: 'brain-chips' }, a.r.map(chip))) : null,
     cited.length ? h('section', { class: 'brain-block' }, h('h3', null, 'Citado por'), h('div', { class: 'brain-chips' }, cited.map(chip))) : null,
+    jurisBlock(d, a),
     h('nav', { class: 'brain-pager', 'aria-label': 'Artigos vizinhos' },
       prev ? h('a', { href: art(d.id, prev.k) }, `← ${prev.n}`) : h('span'),
       h('a', { href: hashFor(d.id) }, 'Índice'),
