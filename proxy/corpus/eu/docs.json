@@ -1048,5 +1048,647 @@
   "url": "https://eur-lex.europa.eu/legal-content/PT/TXT/?uri=CELEX:32013L0011",
   "title": "Diretiva 2013/11/UE — Resolução alternativa de litígios de consumo",
   "eu": true
+ },
+ {
+  "id": "salarios-minimos-ue",
+  "name": "Diretiva (UE) 2022/2041 — Salários mínimos adequados na União Europeia",
+  "short": "Diretiva salários mínimos",
+  "rank": 1,
+  "area": [
+   "trabalho"
+  ],
+  "alias": [
+   "Diretiva \\(UE\\) 2022\\/2041"
+  ],
+  "celex": "32022L2041",
+  "url": "https://eur-lex.europa.eu/legal-content/PT/TXT/?uri=CELEX:32022L2041",
+  "title": "Diretiva (UE) 2022/2041 — Salários mínimos adequados na União Europeia",
+  "eu": true
+ },
+ {
+  "id": "trabalho-plataformas-ue",
+  "name": "Diretiva (UE) 2024/2831 — Melhoria das condições de trabalho nas plataformas digitais",
+  "short": "Diretiva trabalho em plataformas",
+  "rank": 1,
+  "area": [
+   "trabalho",
+   "digital"
+  ],
+  "alias": [
+   "Diretiva \\(UE\\) 2024\\/2831"
+  ],
+  "celex": "32024L2831",
+  "url": "https://eur-lex.europa.eu/legal-content/PT/TXT/?uri=CELEX:32024L2831",
+  "title": "Diretiva (UE) 2024/2831 — Melhoria das condições de trabalho nas plataformas digitais",
+  "eu": true
+ },
+ {
+  "id": "transparencia-salarial-ue",
+  "name": "Diretiva (UE) 2023/970 — Transparência salarial e igualdade de remuneração entre homens e mulheres",
+  "short": "Diretiva transparência salarial",
+  "rank": 1,
+  "area": [
+   "trabalho"
+  ],
+  "alias": [
+   "Diretiva \\(UE\\) 2023\\/970"
+  ],
+  "celex": "32023L0970",
+  "url": "https://eur-lex.europa.eu/legal-content/PT/TXT/?uri=CELEX:32023L0970",
+  "title": "Diretiva (UE) 2023/970 — Transparência salarial e igualdade de remuneração entre homens e mulheres",
+  "eu": true
+ },
+ {
+  "id": "destacamento-ue",
+  "name": "Diretiva 96/71/CE — Destacamento de trabalhadores no âmbito de uma prestação de serviços",
+  "short": "Diretiva destacamento",
+  "rank": 1,
+  "area": [
+   "trabalho",
+   "estrangeiros"
+  ],
+  "alias": [
+   "Diretiva 96\\/71\\/CE"
+  ],
+  "celex": "31996L0071",
+  "url": "https://eur-lex.europa.eu/legal-content/PT/TXT/?uri=CELEX:31996L0071",
+  "title": "Diretiva 96/71/CE — Destacamento de trabalhadores no âmbito de uma prestação de serviços",
+  "eu": true
+ },
+ {
+  "id": "despedimento-coletivo-ue",
+  "name": "Diretiva 98/59/CE — Aproximação das legislações sobre despedimentos coletivos",
+  "short": "Diretiva despedimentos coletivos",
+  "rank": 1,
+  "area": [
+   "trabalho"
+  ],
+  "alias": [
+   "Diretiva 98\\/59\\/CE"
+  ],
+  "celex": "31998L0059",
+  "url": "https://eur-lex.europa.eu/legal-content/PT/TXT/?uri=CELEX:31998L0059",
+  "title": "Diretiva 98/59/CE — Aproximação das legislações sobre despedimentos coletivos",
+  "eu": true
+ },
+ {
+  "id": "transferencia-empresas-ue",
+  "name": "Diretiva 2001/23/CE — Manutenção dos direitos dos trabalhadores em caso de transferência de empresas",
+  "short": "Diretiva transferência de empresas",
+  "rank": 1,
+  "area": [
+   "trabalho"
+  ],
+  "alias": [
+   "Diretiva 2001\\/23\\/CE"
+  ],
+  "celex": "32001L0023",
+  "url": "https://eur-lex.europa.eu/legal-content/PT/TXT/?uri=CELEX:32001L0023",
+  "title": "Diretiva 2001/23/CE — Manutenção dos direitos dos trabalhadores em caso de transferência de empresas",
+  "eu": true
+ },
+ {
+  "id": "insolvencia-empregador-ue",
+  "name": "Diretiva 2008/94/CE — Proteção dos trabalhadores em caso de insolvência do empregador",
+  "short": "Diretiva insolvência do empregador",
+  "rank": 1,
+  "area": [
+   "trabalho",
+   "dividas"
+  ],
+  "alias": [
+   "Diretiva 2008\\/94\\/CE"
+  ],
+  "celex": "32008L0094",
+  "url": "https://eur-lex.europa.eu/legal-content/PT/TXT/?uri=CELEX:32008L0094",
+  "title": "Diretiva 2008/94/CE — Proteção dos trabalhadores em caso de insolvência do empregador",
+  "eu": true
+ },
+ {
+  "id": "trabalho-temporario-ue",
+  "name": "Diretiva 2008/104/CE — Trabalho temporário",
+  "short": "Diretiva trabalho temporário",
+  "rank": 1,
+  "area": [
+   "trabalho"
+  ],
+  "alias": [
+   "Diretiva 2008\\/104\\/CE"
+  ],
+  "celex": "32008L0104",
+  "url": "https://eur-lex.europa.eu/legal-content/PT/TXT/?uri=CELEX:32008L0104",
+  "title": "Diretiva 2008/104/CE — Trabalho temporário",
+  "eu": true
+ },
+ {
+  "id": "sst-ue",
+  "name": "Diretiva 89/391/CEE — Melhoria da segurança e da saúde dos trabalhadores no trabalho (diretiva-quadro)",
+  "short": "Diretiva-quadro SST",
+  "rank": 1,
+  "area": [
+   "trabalho",
+   "saude"
+  ],
+  "alias": [
+   "Diretiva 89\\/391\\/CEE"
+  ],
+  "celex": "31989L0391",
+  "url": "https://eur-lex.europa.eu/legal-content/PT/TXT/?uri=CELEX:31989L0391",
+  "title": "Diretiva 89/391/CEE — Melhoria da segurança e da saúde dos trabalhadores no trabalho (diretiva-quadro)",
+  "eu": true
+ },
+ {
+  "id": "info-consulta-ue",
+  "name": "Diretiva 2002/14/CE — Quadro geral de informação e consulta dos trabalhadores",
+  "short": "Diretiva informação e consulta",
+  "rank": 1,
+  "area": [
+   "trabalho"
+  ],
+  "alias": [
+   "Diretiva 2002\\/14\\/CE"
+  ],
+  "celex": "32002L0014",
+  "url": "https://eur-lex.europa.eu/legal-content/PT/TXT/?uri=CELEX:32002L0014",
+  "title": "Diretiva 2002/14/CE — Quadro geral de informação e consulta dos trabalhadores",
+  "eu": true
+ },
+ {
+  "id": "mde",
+  "name": "Decisão-Quadro 2002/584/JAI — Mandado de detenção europeu e processos de entrega entre Estados-Membros",
+  "short": "MDE",
+  "rank": 1,
+  "area": [
+   "justica",
+   "arguido"
+  ],
+  "alias": [
+   "Decis[ãa]o-Quadro 2002\\/584\\/JAI",
+   "mandado de deten[çc][ãa]o europeu"
+  ],
+  "celex": "02002F0584-20090328",
+  "url": "https://eur-lex.europa.eu/legal-content/PT/TXT/?uri=CELEX:02002F0584-20090328",
+  "title": "Decisão-Quadro 2002/584/JAI — Mandado de detenção europeu e processos de entrega entre Estados-Membros",
+  "eu": true
+ },
+ {
+  "id": "racismo-xenofobia-ue",
+  "name": "Decisão-Quadro 2008/913/JAI — Luta contra o racismo e a xenofobia por via do direito penal",
+  "short": "DQ racismo e xenofobia",
+  "rank": 1,
+  "area": [
+   "odio"
+  ],
+  "alias": [
+   "Decis[ãa]o-Quadro 2008\\/913\\/JAI"
+  ],
+  "celex": "32008F0913",
+  "url": "https://eur-lex.europa.eu/legal-content/PT/TXT/?uri=CELEX:32008F0913",
+  "title": "Decisão-Quadro 2008/913/JAI — Luta contra o racismo e a xenofobia por via do direito penal",
+  "eu": true
+ },
+ {
+  "id": "apoio-judiciario-ue",
+  "name": "Diretiva (UE) 2016/1919 — Apoio judiciário para suspeitos e arguidos em processo penal",
+  "short": "Diretiva apoio judiciário",
+  "rank": 1,
+  "area": [
+   "arguido",
+   "justica"
+  ],
+  "alias": [
+   "Diretiva \\(UE\\) 2016\\/1919"
+  ],
+  "celex": "32016L1919",
+  "url": "https://eur-lex.europa.eu/legal-content/PT/TXT/?uri=CELEX:32016L1919",
+  "title": "Diretiva (UE) 2016/1919 — Apoio judiciário para suspeitos e arguidos em processo penal",
+  "eu": true
+ },
+ {
+  "id": "menores-penal-ue",
+  "name": "Diretiva (UE) 2016/800 — Garantias processuais para menores suspeitos ou arguidos em processo penal",
+  "short": "Diretiva menores em processo penal",
+  "rank": 1,
+  "area": [
+   "arguido",
+   "menores"
+  ],
+  "alias": [
+   "Diretiva \\(UE\\) 2016\\/800"
+  ],
+  "celex": "32016L0800",
+  "url": "https://eur-lex.europa.eu/legal-content/PT/TXT/?uri=CELEX:32016L0800",
+  "title": "Diretiva (UE) 2016/800 — Garantias processuais para menores suspeitos ou arguidos em processo penal",
+  "eu": true
+ },
+ {
+  "id": "trafico-ue",
+  "name": "Diretiva 2011/36/UE — Prevenção e luta contra o tráfico de seres humanos e proteção das vítimas",
+  "short": "Diretiva tráfico de seres humanos",
+  "rank": 1,
+  "area": [
+   "violencia",
+   "estrangeiros"
+  ],
+  "alias": [
+   "Diretiva 2011\\/36\\/UE"
+  ],
+  "celex": "32011L0036",
+  "url": "https://eur-lex.europa.eu/legal-content/PT/TXT/?uri=CELEX:32011L0036",
+  "title": "Diretiva 2011/36/UE — Prevenção e luta contra o tráfico de seres humanos e proteção das vítimas",
+  "eu": true
+ },
+ {
+  "id": "abuso-menores-ue",
+  "name": "Diretiva 2011/93/UE — Luta contra o abuso e a exploração sexual de crianças",
+  "short": "Diretiva abuso sexual de menores",
+  "rank": 1,
+  "area": [
+   "menores",
+   "violencia",
+   "digital"
+  ],
+  "alias": [
+   "Diretiva 2011\\/93\\/UE"
+  ],
+  "celex": "32011L0093",
+  "url": "https://eur-lex.europa.eu/legal-content/PT/TXT/?uri=CELEX:32011L0093",
+  "title": "Diretiva 2011/93/UE — Luta contra o abuso e a exploração sexual de crianças",
+  "eu": true
+ },
+ {
+  "id": "violencia-mulheres-ue",
+  "name": "Diretiva (UE) 2024/1385 — Combate à violência contra as mulheres e à violência doméstica",
+  "short": "Diretiva violência contra as mulheres",
+  "rank": 1,
+  "area": [
+   "violencia",
+   "familia"
+  ],
+  "alias": [
+   "Diretiva \\(UE\\) 2024\\/1385"
+  ],
+  "celex": "32024L1385",
+  "url": "https://eur-lex.europa.eu/legal-content/PT/TXT/?uri=CELEX:32024L1385",
+  "title": "Diretiva (UE) 2024/1385 — Combate à violência contra as mulheres e à violência doméstica",
+  "eu": true
+ },
+ {
+  "id": "nis2",
+  "name": "Diretiva (UE) 2022/2555 — Medidas para um elevado nível comum de cibersegurança (NIS 2)",
+  "short": "NIS 2",
+  "rank": 1,
+  "area": [
+   "digital",
+   "dados"
+  ],
+  "alias": [
+   "Diretiva \\(UE\\) 2022\\/2555",
+   "NIS ?2"
+  ],
+  "celex": "32022L2555",
+  "url": "https://eur-lex.europa.eu/legal-content/PT/TXT/?uri=CELEX:32022L2555",
+  "title": "Diretiva (UE) 2022/2555 — Medidas para um elevado nível comum de cibersegurança (NIS 2)",
+  "eu": true
+ },
+ {
+  "id": "data-act",
+  "name": "Regulamento (UE) 2023/2854 — Acesso equitativo aos dados e à sua utilização (Data Act)",
+  "short": "Data Act",
+  "rank": 1,
+  "area": [
+   "dados",
+   "digital"
+  ],
+  "alias": [
+   "Regulamento \\(UE\\) 2023\\/2854",
+   "Data Act"
+  ],
+  "celex": "32023R2854",
+  "url": "https://eur-lex.europa.eu/legal-content/PT/TXT/?uri=CELEX:32023R2854",
+  "title": "Regulamento (UE) 2023/2854 — Acesso equitativo aos dados e à sua utilização (Data Act)",
+  "eu": true
+ },
+ {
+  "id": "dga",
+  "name": "Regulamento (UE) 2022/868 — Governação europeia de dados (Data Governance Act)",
+  "short": "DGA",
+  "rank": 1,
+  "area": [
+   "dados",
+   "acesso"
+  ],
+  "alias": [
+   "Regulamento \\(UE\\) 2022\\/868",
+   "Data Governance Act"
+  ],
+  "celex": "32022R0868",
+  "url": "https://eur-lex.europa.eu/legal-content/PT/TXT/?uri=CELEX:32022R0868",
+  "title": "Regulamento (UE) 2022/868 — Governação europeia de dados (Data Governance Act)",
+  "eu": true
+ },
+ {
+  "id": "eidas",
+  "name": "Regulamento (UE) n.º 910/2014 — Identificação eletrónica e serviços de confiança (eIDAS)",
+  "short": "eIDAS",
+  "rank": 1,
+  "area": [
+   "digital",
+   "administrativo"
+  ],
+  "alias": [
+   "Regulamento \\(UE\\) n\\.?º\\s*910\\/2014",
+   "eIDAS"
+  ],
+  "celex": "32014R0910",
+  "url": "https://eur-lex.europa.eu/legal-content/PT/TXT/?uri=CELEX:32014R0910",
+  "title": "Regulamento (UE) n.º 910/2014 — Identificação eletrónica e serviços de confiança (eIDAS)",
+  "eu": true
+ },
+ {
+  "id": "acoes-representativas-ue",
+  "name": "Diretiva (UE) 2020/1828 — Ações coletivas para proteção dos interesses dos consumidores",
+  "short": "Diretiva ações coletivas",
+  "rank": 1,
+  "area": [
+   "consumo",
+   "justica"
+  ],
+  "alias": [
+   "Diretiva \\(UE\\) 2020\\/1828"
+  ],
+  "celex": "32020L1828",
+  "url": "https://eur-lex.europa.eu/legal-content/PT/TXT/?uri=CELEX:32020L1828",
+  "title": "Diretiva (UE) 2020/1828 — Ações coletivas para proteção dos interesses dos consumidores",
+  "eu": true
+ },
+ {
+  "id": "indicacao-precos-ue",
+  "name": "Diretiva 98/6/CE — Defesa dos consumidores em matéria de indicações dos preços",
+  "short": "Diretiva indicação de preços",
+  "rank": 1,
+  "area": [
+   "consumo"
+  ],
+  "alias": [
+   "Diretiva 98\\/6\\/CE"
+  ],
+  "celex": "31998L0006",
+  "url": "https://eur-lex.europa.eu/legal-content/PT/TXT/?uri=CELEX:31998L0006",
+  "title": "Diretiva 98/6/CE — Defesa dos consumidores em matéria de indicações dos preços",
+  "eu": true
+ },
+ {
+  "id": "passageiros-ferroviarios-ue",
+  "name": "Regulamento (UE) 2021/782 — Direitos e obrigações dos passageiros dos serviços ferroviários",
+  "short": "Reg. passageiros ferroviários",
+  "rank": 1,
+  "area": [
+   "consumo"
+  ],
+  "alias": [
+   "Regulamento \\(UE\\) 2021\\/782"
+  ],
+  "celex": "32021R0782",
+  "url": "https://eur-lex.europa.eu/legal-content/PT/TXT/?uri=CELEX:32021R0782",
+  "title": "Regulamento (UE) 2021/782 — Direitos e obrigações dos passageiros dos serviços ferroviários",
+  "eu": true
+ },
+ {
+  "id": "mobilidade-reduzida-ue",
+  "name": "Regulamento (CE) n.º 1107/2006 — Direitos das pessoas com deficiência e com mobilidade reduzida no transporte aéreo",
+  "short": "Reg. mobilidade reduzida",
+  "rank": 1,
+  "area": [
+   "deficiencia",
+   "consumo"
+  ],
+  "alias": [
+   "Regulamento \\(CE\\) n\\.?º\\s*1107\\/2006"
+  ],
+  "celex": "32006R1107",
+  "url": "https://eur-lex.europa.eu/legal-content/PT/TXT/?uri=CELEX:32006R1107",
+  "title": "Regulamento (CE) n.º 1107/2006 — Direitos das pessoas com deficiência e com mobilidade reduzida no transporte aéreo",
+  "eu": true
+ },
+ {
+  "id": "qualificacao-asilo-ue",
+  "name": "Diretiva 2011/95/UE — Qualificação para beneficiar de proteção internacional",
+  "short": "Diretiva qualificação",
+  "rank": 1,
+  "area": [
+   "estrangeiros"
+  ],
+  "alias": [
+   "Diretiva 2011\\/95\\/UE"
+  ],
+  "celex": "32011L0095",
+  "url": "https://eur-lex.europa.eu/legal-content/PT/TXT/?uri=CELEX:32011L0095",
+  "title": "Diretiva 2011/95/UE — Qualificação para beneficiar de proteção internacional",
+  "eu": true
+ },
+ {
+  "id": "acolhimento-ue",
+  "name": "Diretiva 2013/33/UE — Normas em matéria de acolhimento dos requerentes de proteção internacional",
+  "short": "Diretiva acolhimento",
+  "rank": 1,
+  "area": [
+   "estrangeiros"
+  ],
+  "alias": [
+   "Diretiva 2013\\/33\\/UE"
+  ],
+  "celex": "32013L0033",
+  "url": "https://eur-lex.europa.eu/legal-content/PT/TXT/?uri=CELEX:32013L0033",
+  "title": "Diretiva 2013/33/UE — Normas em matéria de acolhimento dos requerentes de proteção internacional",
+  "eu": true
+ },
+ {
+  "id": "reagrupamento-ue",
+  "name": "Diretiva 2003/86/CE — Direito ao reagrupamento familiar",
+  "short": "Diretiva reagrupamento familiar",
+  "rank": 1,
+  "area": [
+   "estrangeiros",
+   "familia"
+  ],
+  "alias": [
+   "Diretiva 2003\\/86\\/CE"
+  ],
+  "celex": "32003L0086",
+  "url": "https://eur-lex.europa.eu/legal-content/PT/TXT/?uri=CELEX:32003L0086",
+  "title": "Diretiva 2003/86/CE — Direito ao reagrupamento familiar",
+  "eu": true
+ },
+ {
+  "id": "residentes-ld-ue",
+  "name": "Diretiva 2003/109/CE — Estatuto dos nacionais de países terceiros residentes de longa duração",
+  "short": "Diretiva residentes de longa duração",
+  "rank": 1,
+  "area": [
+   "estrangeiros"
+  ],
+  "alias": [
+   "Diretiva 2003\\/109\\/CE"
+  ],
+  "celex": "32003L0109",
+  "url": "https://eur-lex.europa.eu/legal-content/PT/TXT/?uri=CELEX:32003L0109",
+  "title": "Diretiva 2003/109/CE — Estatuto dos nacionais de países terceiros residentes de longa duração",
+  "eu": true
+ },
+ {
+  "id": "schengen-fronteiras",
+  "name": "Regulamento (UE) 2016/399 — Código da União relativo ao regime de passagem de pessoas nas fronteiras (Código das Fronteiras Schengen)",
+  "short": "Código Fronteiras Schengen",
+  "rank": 1,
+  "area": [
+   "estrangeiros"
+  ],
+  "alias": [
+   "Regulamento \\(UE\\) 2016\\/399",
+   "C[óo]digo das Fronteiras Schengen"
+  ],
+  "celex": "32016R0399",
+  "url": "https://eur-lex.europa.eu/legal-content/PT/TXT/?uri=CELEX:32016R0399",
+  "title": "Regulamento (UE) 2016/399 — Código da União relativo ao regime de passagem de pessoas nas fronteiras (Código das Fronteiras Schengen)",
+  "eu": true
+ },
+ {
+  "id": "clima-ue",
+  "name": "Regulamento (UE) 2021/1119 — Lei Europeia em matéria de Clima (neutralidade climática em 2050)",
+  "short": "Lei Europeia do Clima",
+  "rank": 1,
+  "area": [
+   "ambiente"
+  ],
+  "alias": [
+   "Regulamento \\(UE\\) 2021\\/1119",
+   "Lei Europeia do Clima"
+  ],
+  "celex": "32021R1119",
+  "url": "https://eur-lex.europa.eu/legal-content/PT/TXT/?uri=CELEX:32021R1119",
+  "title": "Regulamento (UE) 2021/1119 — Lei Europeia em matéria de Clima (neutralidade climática em 2050)",
+  "eu": true
+ },
+ {
+  "id": "emissoes-industriais-ue",
+  "name": "Diretiva 2010/75/UE — Emissões industriais (prevenção e controlo integrados da poluição)",
+  "short": "Diretiva emissões industriais",
+  "rank": 1,
+  "area": [
+   "ambiente"
+  ],
+  "alias": [
+   "Diretiva 2010\\/75\\/UE"
+  ],
+  "celex": "32010L0075",
+  "url": "https://eur-lex.europa.eu/legal-content/PT/TXT/?uri=CELEX:32010L0075",
+  "title": "Diretiva 2010/75/UE — Emissões industriais (prevenção e controlo integrados da poluição)",
+  "eu": true
+ },
+ {
+  "id": "qualidade-ar-ue",
+  "name": "Diretiva (UE) 2024/2881 — Qualidade do ar ambiente e um ar mais limpo na Europa",
+  "short": "Diretiva qualidade do ar",
+  "rank": 1,
+  "area": [
+   "ambiente",
+   "saude"
+  ],
+  "alias": [
+   "Diretiva \\(UE\\) 2024\\/2881"
+  ],
+  "celex": "32024L2881",
+  "url": "https://eur-lex.europa.eu/legal-content/PT/TXT/?uri=CELEX:32024L2881",
+  "title": "Diretiva (UE) 2024/2881 — Qualidade do ar ambiente e um ar mais limpo na Europa",
+  "eu": true
+ },
+ {
+  "id": "restauro-natureza-ue",
+  "name": "Regulamento (UE) 2024/1991 — Restauro da natureza",
+  "short": "Reg. restauro da natureza",
+  "rank": 1,
+  "area": [
+   "ambiente"
+  ],
+  "alias": [
+   "Regulamento \\(UE\\) 2024\\/1991"
+  ],
+  "celex": "32024R1991",
+  "url": "https://eur-lex.europa.eu/legal-content/PT/TXT/?uri=CELEX:32024R1991",
+  "title": "Regulamento (UE) 2024/1991 — Restauro da natureza",
+  "eu": true
+ },
+ {
+  "id": "crimes-ambientais-ue",
+  "name": "Diretiva (UE) 2024/1203 — Proteção do ambiente através do direito penal",
+  "short": "Diretiva crimes ambientais",
+  "rank": 1,
+  "area": [
+   "ambiente",
+   "justica"
+  ],
+  "alias": [
+   "Diretiva \\(UE\\) 2024\\/1203"
+  ],
+  "celex": "32024L1203",
+  "url": "https://eur-lex.europa.eu/legal-content/PT/TXT/?uri=CELEX:32024L1203",
+  "title": "Diretiva (UE) 2024/1203 — Proteção do ambiente através do direito penal",
+  "eu": true
+ },
+ {
+  "id": "aarhus-ue",
+  "name": "Regulamento (CE) n.º 1367/2006 — Aplicação da Convenção de Aarhus às instituições da União (informação, participação e justiça em matéria de ambiente)",
+  "short": "Reg. Aarhus",
+  "rank": 1,
+  "area": [
+   "ambiente",
+   "acesso",
+   "participacao"
+  ],
+  "alias": [
+   "Regulamento \\(CE\\) n\\.?º\\s*1367\\/2006"
+  ],
+  "celex": "32006R1367",
+  "url": "https://eur-lex.europa.eu/legal-content/PT/TXT/?uri=CELEX:32006R1367",
+  "title": "Regulamento (CE) n.º 1367/2006 — Aplicação da Convenção de Aarhus às instituições da União (informação, participação e justiça em matéria de ambiente)",
+  "eu": true
+ },
+ {
+  "id": "ice",
+  "name": "Regulamento (UE) 2019/788 — Iniciativa de cidadania europeia",
+  "short": "ICE",
+  "rank": 1,
+  "area": [
+   "participacao",
+   "eleicoes"
+  ],
+  "alias": [
+   "Regulamento \\(UE\\) 2019\\/788",
+   "iniciativa de cidadania europeia"
+  ],
+  "celex": "32019R0788",
+  "url": "https://eur-lex.europa.eu/legal-content/PT/TXT/?uri=CELEX:32019R0788",
+  "title": "Regulamento (UE) 2019/788 — Iniciativa de cidadania europeia",
+  "eu": true
+ },
+ {
+  "id": "ehds",
+  "name": "Regulamento (UE) 2025/327 — Espaço Europeu de Dados de Saúde",
+  "short": "EHDS",
+  "rank": 1,
+  "area": [
+   "saude",
+   "dados"
+  ],
+  "alias": [
+   "Regulamento \\(UE\\) 2025\\/327",
+   "Espa[çc]o Europeu de Dados de Sa[úu]de",
+   "EHDS"
+  ],
+  "celex": "32025R0327",
+  "url": "https://eur-lex.europa.eu/legal-content/PT/TXT/?uri=CELEX:32025R0327",
+  "title": "Regulamento (UE) 2025/327 — Espaço Europeu de Dados de Saúde",
+  "eu": true
  }
 ]
