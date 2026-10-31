@@ -815,19 +815,111 @@
   const entityList = (entities) => h('ul', { class: 'entity-list' }, entities.map((e) => h('li', {},
     e.url ? extLink(e.url, e.name) : h('strong', {}, e.name), ` — ${e.role}`)));
 
-  function lawGuide(t, open) {
-    return h('details', { class: 'law-topic', open },
-      h('summary', {}, t.area),
-      h('p', { class: 'law-note' }, t.note),
-      t.rights?.length ? lawBlock('Os teus direitos', lawList(t.rights)) : null,
-      t.steps?.length ? lawBlock('Como agir', lawList(t.steps, true)) : null,
-      t.deadlines?.length ? lawBlock('Prazos', h('ul', { class: 'deadlines' }, t.deadlines.map((d) => h('li', {},
-        h('strong', {}, d.when), ` — ${d.what} `, h('span', { class: 'meta' }, `(${d.base})`))))) : null,
-      t.arguments?.length ? lawBlock('Argumentos úteis', lawList(t.arguments)) : null,
-      t.entities?.length ? lawBlock('Onde recorrer', entityList(t.entities)) : null,
-      t.refs?.length ? lawBlock('Diplomas e artigos (toca para pesquisar)', h('p', { class: 'chips' }, t.refs.map((ref) =>
-        h('button', { type: 'button', class: 'chip', onclick: () => law.ask(ref) }, ref)))) : null,
+  const { FIELDS = {}, ANGLES = {}, TEMPLATES = [] } = window.LAW_KIT || {};
+  const PROFILE_KEYS = ['nome', 'morada', 'contacto'];
+  const BIG_FIELDS = new Set(['factos', 'pedido']);
+  const chipButton = (q) => h('button', { type: 'button', class: 'chip', onclick: () => law.ask(q) }, q);
+  const lawSection = (cls, title, sub, ...kids) => h('section', { class: `law-section ${cls}` },
+    h('h3', {}, title), sub ? h('p', { class: 'meta' }, sub) : null, ...kids);
+
+  // Modelo de documento: campos partilhados entre todos os modelos, pré-visualização editável,
+  // copiar, inserir no editor e descarregar.
+  function lawModel(tpl, values, onChange) {
+    const marks = h('span', { class: 'meta' });
+    const area = h('textarea', { class: 'model-text', rows: 14, spellcheck: false, 'aria-label': `Texto do modelo: ${tpl.title}` });
+    let dirty = false;
+    const inputs = tpl.fields.map((k) => {
+      const el = BIG_FIELDS.has(k) ? h('textarea', { rows: 2 }) : h('input', { type: 'text', autocomplete: 'off' });
+      el.addEventListener('input', () => { values[k] = el.value; onChange(); });
+      return [k, el];
+    });
+    area.addEventListener('input', () => { dirty = true; countMarks(); });
+
+    const countMarks = () => {
+      const n = (area.value.match(/\[[^\]\n]+\]/g) || []).length;
+      marks.textContent = n ? `${n} ${n === 1 ? 'marcador' : 'marcadores'} [entre parênteses retos] por preencher ou escolher.` : 'Sem marcadores por preencher.';
+    };
+    const sync = () => {
+      for (const [k, el] of inputs) if (el.value !== (values[k] || '')) el.value = values[k] || '';
+      if (!dirty) area.value = tpl.body((k) => values[k]?.trim() || `[${FIELDS[k] || k}]`, { today: new Date().toLocaleDateString('pt-PT', { day: 'numeric', month: 'long', year: 'numeric' }) });
+      countMarks();
+    };
+
+    const flash = (btn, text) => { const old = btn.textContent; btn.textContent = text; setTimeout(() => { btn.textContent = old; }, 1600); };
+    const copy = h('button', { type: 'button', class: 'chip' }, 'Copiar');
+    copy.onclick = async () => {
+      try { await navigator.clipboard.writeText(area.value); flash(copy, 'Copiado'); } catch { area.select(); flash(copy, 'Seleciona e copia'); }
+    };
+    const insert = h('button', { type: 'button', class: 'chip' }, 'Inserir no editor');
+    insert.onclick = () => {
+      recordChange(() => { const cur = textEl.value.trimEnd(); textEl.value = cur ? `${cur}\n\n${area.value}` : area.value; });
+      check();
+      flash(insert, 'Inserido');
+    };
+    const download = h('button', { type: 'button', class: 'chip' }, 'Descarregar .txt');
+    download.onclick = () => {
+      const a = h('a', { href: URL.createObjectURL(new Blob([area.value], { type: 'text/plain;charset=utf-8' })), download: `${tpl.id}.txt` });
+      a.click();
+      setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+    };
+    const reset = h('button', { type: 'button', class: 'chip' }, 'Repor modelo');
+    reset.onclick = () => { dirty = false; sync(); };
+
+    const card = h('details', { class: 'law-model' },
+      h('summary', {}, tpl.title),
+      h('p', {}, h('strong', {}, 'Quando usar: '), tpl.when),
+      h('p', { class: 'law-alert' }, h('strong', {}, 'Prazo: '), tpl.deadline),
+      h('div', { class: 'model-fields' }, inputs.map(([k, el]) => h('label', {}, FIELDS[k] || k, el))),
+      area, marks,
+      h('p', { class: 'chips' }, copy, insert, download, reset),
+      h('p', { class: 'meta' }, tpl.send, ' ', tpl.to.url ? extLink(tpl.to.url, `Abrir ${tpl.to.name}`) : `Destinatário: ${tpl.to.name}.`),
     );
+    return { card, sync };
+  }
+
+  function lawTop(t, data, citation, scrollTo) {
+    if (!t) {
+      return [h('section', { class: 'law-hero' }, h('p', { class: 'eyebrow' }, 'O que sabemos'), h('h3', {}, `«${data.term}»`),
+        h('p', { class: 'law-note' }, 'Não identificámos uma área jurídica concreta para este termo. Vê as fontes oficiais abaixo ou experimenta um termo mais específico (por exemplo «difamação», «despedimento», «acesso a documentos» ou «Lei n.º 26/2016»).'))];
+    }
+    const angles = ANGLES[t.id] || [];
+    const first = t.deadlines?.[0];
+    return [
+      h('section', { class: 'law-hero' },
+        h('p', { class: 'eyebrow' }, 'O que sabemos'), h('h3', {}, `«${data.term}»`),
+        citation ? h('p', { class: 'law-cite' }, `Interpretado como citação: ${citation.label}`) : null,
+        h('p', { class: 'law-area' }, t.area),
+        h('p', { class: 'law-note' }, t.note),
+        t.rights?.length ? lawBlock('Direitos à cabeça', lawList(t.rights.slice(0, 3))) : null,
+        first ? h('p', { class: 'law-alert' }, h('strong', {}, 'Atenção ao prazo: '), `${first.when} — ${first.what.toLowerCase()}`) : null,
+        h('nav', { class: 'law-nav', 'aria-label': 'Ir para' }, [['law-angles', 'Perspetivas'], ['law-found', 'Fontes'], ['law-act', 'Agir'], ['law-models', 'Modelos']]
+          .map(([cls, label]) => h('button', { type: 'button', class: 'chip', onclick: () => scrollTo(cls) }, label)))),
+      lawSection('law-angles', 'Perspetivas e ângulos', 'Cada ângulo abre uma linha de pesquisa: toca nas sugestões para explorar.',
+        angles.length ? h('div', { class: 'angles' }, angles.map((a) => h('article', { class: 'angle' },
+          h('h4', {}, a.title), h('p', {}, a.text),
+          a.search?.length ? h('p', { class: 'chips' }, a.search.map(chipButton)) : null))) : null,
+        !angles.length && t.arguments?.length ? lawBlock('Argumentos úteis', lawList(t.arguments)) : null,
+        t.rights?.length > 3 ? h('details', { class: 'law-more' }, h('summary', {}, 'Todos os direitos desta área'), lawList(t.rights)) : null,
+        t.refs?.length ? lawBlock('Diplomas e artigos (toca para pesquisar)', h('p', { class: 'chips' }, t.refs.map(chipButton))) : null),
+    ];
+  }
+
+  function lawBottom(t, values, onChange, syncs) {
+    const models = TEMPLATES
+      .filter((m) => m.topics.includes(t?.id) || m.topics.includes('*'))
+      .sort((a, b) => a.topics.includes('*') - b.topics.includes('*'));
+    const cards = models.map((m) => { const c = lawModel(m, values, onChange); syncs.push(c.sync); c.sync(); return c.card; });
+    const hasAngles = t && ANGLES[t.id]?.length;
+    return [
+      t ? lawSection('law-act', 'O que fazer a seguir', null,
+        t.steps?.length ? lawBlock('Passo a passo', lawList(t.steps, true)) : null,
+        t.deadlines?.length ? lawBlock('Prazos', h('ul', { class: 'deadlines' }, t.deadlines.map((d) => h('li', {},
+          h('strong', {}, d.when), ` — ${d.what} `, h('span', { class: 'meta' }, `(${d.base})`))))) : null,
+        hasAngles && t.arguments?.length ? lawBlock('Argumentos úteis', lawList(t.arguments)) : null,
+        t.entities?.length ? lawBlock('Onde recorrer', entityList(t.entities)) : null) : null,
+      lawSection('law-models', 'Modelos prontos a usar', 'Preenche os campos uma vez: servem para todos os modelos e ficam guardados só neste navegador (nome, morada e contacto). O texto pode ser editado à mão.',
+        ...cards),
+    ];
   }
 
   function lawResults(results) {
@@ -846,10 +938,27 @@
 
   function renderLaw(data) {
     const { citation, topics = [], toolkit = [] } = data.interpretation || {};
+    const values = { ...store.get('lawProfile', {}) };
+    const syncs = [];
+    const onChange = () => {
+      store.set('lawProfile', Object.fromEntries(PROFILE_KEYS.map((k) => [k, values[k] || ''])));
+      syncs.forEach((s) => s());
+    };
+    const top = h('div'), bottom = h('div');
+    const scrollTo = (cls) => law.result.querySelector(`.${cls}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    const tabs = topics.length > 1 ? h('div', { class: 'law-tabs', role: 'group', 'aria-label': 'Áreas identificadas' },
+      topics.map((t, i) => h('button', { type: 'button', class: 'chip', onclick: () => show(i) }, t.area))) : null;
+    function show(i) {
+      tabs?.querySelectorAll('button').forEach((b, j) => b.setAttribute('aria-pressed', String(j === i)));
+      syncs.length = 0;
+      top.replaceChildren(...lawTop(topics[i], data, citation, scrollTo));
+      bottom.replaceChildren(...lawBottom(topics[i], values, onChange, syncs));
+    }
+    show(0);
+    const found = lawSection('law-found', 'Fontes e resultados', 'Legislação, jurisprudência e decisões de entidades oficiais. Toca num resultado para ler o excerto.',
+      data.results.length ? lawResults(data.results) : h('p', {}, `Sem resultados diretos nas fontes escolhidas para «${data.term}».`));
     law.result.append(...[
-      citation ? h('p', { class: 'law-cite' }, `Interpretado como citação: ${citation.label}`) : null,
-      topics.map((t, i) => lawGuide(t, i === 0)),
-      data.results.length ? lawResults(data.results) : h('p', {}, `Sem resultados diretos nas fontes escolhidas para «${data.term}».`),
+      tabs, top, found, bottom,
       toolkit.length ? h('details', { class: 'law-topic law-toolkit' },
         h('summary', {}, 'Ferramentas ao teu alcance, em qualquer situação'),
         h('ul', { class: 'toolkit' }, toolkit.map((k) => h('li', {}, h('strong', {}, k.title), ` ${k.text}`,
