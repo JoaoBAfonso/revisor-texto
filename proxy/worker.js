@@ -72,8 +72,9 @@ export default {
     if (url.pathname === '/duvidas') {
       const q = (url.searchParams.get('q') || '').trim();
       if (!q || q.length > 80) return json({ error: 'Pesquisa inválida' }, 400, headers);
+      const page = Math.min(Math.max(parseInt(url.searchParams.get('page'), 10) || 1, 1), 20);
       try {
-        const result = await searchCiberduvidas(q);
+        const result = await searchCiberduvidas(q, page);
         return json(result, 200, { ...headers, 'Cache-Control': 'public, max-age=3600' });
       } catch {
         return json({ error: 'Não foi possível consultar o Ciberdúvidas' }, 502, headers);

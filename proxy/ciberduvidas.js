@@ -115,19 +115,19 @@ function cookiesFrom(res) {
   return list.map((c) => c.split(';')[0].trim()).filter(Boolean).join('; ');
 }
 
-export async function searchCiberduvidas(term) {
-  const page = await fetch(`${BASE}/consultorio`, { headers: { 'User-Agent': UA } });
-  if (!page.ok) throw new Error(`Ciberdúvidas respondeu ${page.status}`);
-  const cookie = cookiesFrom(page);
-  const token = /name="csrfToken" value="([^"]+)"/.exec(await page.text())?.[1];
+export async function searchCiberduvidas(term, page = 1) {
+  const start = await fetch(`${BASE}/consultorio`, { headers: { 'User-Agent': UA } });
+  if (!start.ok) throw new Error(`Ciberdúvidas respondeu ${start.status}`);
+  const cookie = cookiesFrom(start);
+  const token = /name="csrfToken" value="([^"]+)"/.exec(await start.text())?.[1];
   if (!token) throw new Error('Token CSRF não encontrado');
 
   const res = await fetch(`${BASE}/pesquisa`, {
     method: 'POST',
     headers: { 'User-Agent': UA, 'Content-Type': 'application/x-www-form-urlencoded', Cookie: cookie },
-    body: new URLSearchParams({ csrfToken: token, searchTerm: term, page: '1' }),
+    body: new URLSearchParams({ csrfToken: token, searchTerm: term, page: String(page) }),
   });
   if (!res.ok) throw new Error(`Ciberdúvidas respondeu ${res.status}`);
   const results = parseCiberduvidas(await res.text());
-  return { term, results, moreUrl: `${BASE}/consultorio` };
+  return { term, page, results, moreUrl: `${BASE}/consultorio` };
 }

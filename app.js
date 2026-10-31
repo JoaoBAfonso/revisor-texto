@@ -714,16 +714,53 @@
     }
   }
 
+  const PAGE_SIZE = 10;
+  const moreButton = (onclick) => h('button', { type: 'button', class: 'more', onclick });
+
+  // Lista que mostra os itens por blocos; o botão revela os restantes (já recebidos do proxy).
+  function pagedList(items, draw, size = PAGE_SIZE) {
+    const list = h('ul', { class: 'doubt-list' });
+    const btn = moreButton(() => step());
+    let shown = 0;
+    function step() {
+      items.slice(shown, shown + size).forEach((item) => list.append(draw(item)));
+      shown = Math.min(items.length, shown + size);
+      btn.hidden = shown >= items.length;
+      btn.textContent = `Carregar mais (${items.length - shown})`;
+    }
+    step();
+    return h('div', {}, list, btn);
+  }
+
+  const doubtItem = (r) => h('li', {},
+    h('a', { href: r.url, rel: 'noopener noreferrer', onclick: (e) => { if (API()) { e.preventDefault(); openAnswer(r); } } }, r.title),
+    h('p', {}, r.summary),
+    h('span', { class: 'meta' }, [r.author, r.date].filter(Boolean).join(' · ')));
+
+  // O Ciberdúvidas pagina no servidor: cada clique pede a página seguinte.
   function renderDoubts(data) {
     if (!data.results.length) { doubts.say(`Sem dúvidas encontradas para «${data.term}».`); return; }
-    doubts.result.append(
-      h('ul', { class: 'doubt-list' }, data.results.map((r) => h('li', {},
-        h('a', { href: r.url, rel: 'noopener noreferrer', onclick: (e) => { if (API()) { e.preventDefault(); openAnswer(r); } } }, r.title),
-        h('p', {}, r.summary),
-        h('span', { class: 'meta' }, [r.author, r.date].filter(Boolean).join(' · '))))),
-      h('p', { class: 'src' }, 'Fonte: ', extLink(data.moreUrl, 'Ciberdúvidas da Língua Portuguesa'),
-        ` · ${data.results.length} dúvidas mais relevantes para «${data.term}».`),
-    );
+    const list = h('ul', { class: 'doubt-list' }, data.results.map(doubtItem));
+    const seen = new Set(data.results.map((r) => r.url));
+    let page = 1;
+    const btn = moreButton(async () => {
+      btn.disabled = true;
+      btn.textContent = 'A carregar…';
+      try {
+        const next = await getJson('/duvidas', { q: data.term, page: page + 1 });
+        const fresh = next.results.filter((r) => !seen.has(r.url));
+        fresh.forEach((r) => { seen.add(r.url); list.append(doubtItem(r)); });
+        page += 1;
+        btn.hidden = !fresh.length;
+        btn.textContent = 'Carregar mais';
+      } catch {
+        btn.textContent = 'Não foi possível carregar. Tentar de novo';
+      }
+      btn.disabled = false;
+    });
+    btn.textContent = 'Carregar mais';
+    doubts.result.append(list, btn,
+      h('p', { class: 'src' }, 'Fonte: ', extLink(data.moreUrl, 'Ciberdúvidas da Língua Portuguesa'), ` · resultados para «${data.term}».`));
   }
 
 
@@ -778,9 +815,9 @@
   function renderNews(data) {
     if (!data.results.length) { news.say(`Sem notícias encontradas para «${data.term}».`); return; }
     news.result.append(
-      h('ul', { class: 'doubt-list' }, data.results.map((r) => h('li', {},
+      pagedList(data.results, (r) => h('li', {},
         h('button', { type: 'button', class: 'link', onclick: () => openNews(r) }, r.title),
-        h('span', { class: 'meta' }, [r.source, fmtDate(r.date)].filter(Boolean).join(' · '))))),
+        h('span', { class: 'meta' }, [r.source, fmtDate(r.date)].filter(Boolean).join(' · ')))),
       h('p', { class: 'src' }, `Resultados do Bing Notícias para «${data.term}».`, data.failed?.length ? ' Alguns sites não responderam.' : ''),
     );
   }
@@ -938,9 +975,9 @@
     }
     return [...groups].map(([kind, items]) => h('div', { class: 'law-group' },
       h('h3', {}, kind),
-      h('ul', { class: 'doubt-list' }, items.map((r) => h('li', {},
+      pagedList(items, (r) => h('li', {},
         h('button', { type: 'button', class: 'link', onclick: () => openLaw(r) }, r.title),
-        h('span', { class: 'meta' }, r.source, SITE_ONLY.has(r.site) ? ' · só no site de origem' : ' · texto integral aqui'))))));
+        h('span', { class: 'meta' }, r.source, SITE_ONLY.has(r.site) ? ' · só no site de origem' : ' · texto integral aqui')), 5)));
   }
 
   function renderLaw(data) {
