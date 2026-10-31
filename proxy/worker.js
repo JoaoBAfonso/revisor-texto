@@ -1,7 +1,9 @@
 // Cloudflare Worker:
 //   GET  /?word=casa   -> JSON com a definição obtida no Priberam.
 //   POST /translate    -> tradução via DeepL (a chave DEEPL_API_KEY fica só aqui, como segredo).
+//   GET  /duvidas?q=   -> dúvidas do consultório do Ciberdúvidas.
 import { lookupPriberam } from './priberam.js';
+import { searchCiberduvidas } from './ciberduvidas.js';
 
 // Origens autorizadas a usar o proxy. Substituir pelo endereço do GitHub Pages.
 const ALLOWED_ORIGINS = ['https://joaobafonso.github.io', 'http://localhost:8765', 'http://localhost:8000'];
@@ -62,6 +64,16 @@ export default {
     if (url.pathname === '/translate') {
       if (request.method !== 'POST') return json({ error: 'Método não permitido' }, 405, headers);
       return translate(request, env, headers);
+    }
+    if (url.pathname === '/duvidas') {
+      const q = (url.searchParams.get('q') || '').trim();
+      if (!q || q.length > 80) return json({ error: 'Pesquisa inválida' }, 400, headers);
+      try {
+        const result = await searchCiberduvidas(q);
+        return json(result, 200, { ...headers, 'Cache-Control': 'public, max-age=3600' });
+      } catch {
+        return json({ error: 'Não foi possível consultar o Ciberdúvidas' }, 502, headers);
+      }
     }
 
     const word = (url.searchParams.get('word') || '').trim();

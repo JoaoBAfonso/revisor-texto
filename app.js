@@ -387,6 +387,7 @@
   async function setLanguage(lang) {
     langEl.value = lang;
     updateDefineButton();
+    updateDoubts();
     renderTargets();
     trRange = null;
     trActions.hidden = true;
@@ -542,6 +543,81 @@
   document.addEventListener('selectionchange', () => { if (document.activeElement === textEl) updateDefineButton(); });
   defineBtn.onclick = showDefinition;
 
+  // Dúvidas do Ciberdúvidas (só português), via proxy.
+  const doubtsEl = $('doubts'), doubtsForm = $('doubtsForm'), doubtsQuery = $('doubtsQuery');
+  const doubtsBtn = $('doubtsBtn'), doubtsResult = $('doubtsResult');
+  const doubtsCache = new Map();
+  let doubtsSeq = 0;
+
+  function updateDoubts() {
+    doubtsEl.hidden = langEl.value !== 'pt-PT';
+    doubtsBtn.disabled = !doubtsQuery.value.trim();
+  }
+  doubtsQuery.addEventListener('input', updateDoubts);
+  document.addEventListener('selectionchange', () => {
+    if (document.activeElement !== textEl) return;
+    const sel = textEl.value.slice(textEl.selectionStart, textEl.selectionEnd).trim();
+    if (sel && sel.length <= 80 && !/\n/.test(sel)) { doubtsQuery.value = sel; updateDoubts(); }
+  });
+
+  const doubtsMessage = (text, isError) => {
+    doubtsResult.className = isError ? 'error' : '';
+    doubtsResult.textContent = text;
+  };
+
+  function renderDoubts(data) {
+    doubtsResult.className = '';
+    doubtsResult.replaceChildren();
+    if (!data.results.length) {
+      doubtsMessage(`Sem dúvidas encontradas para «${data.term}».`);
+      return;
+    }
+    const list = document.createElement('ul');
+    list.className = 'doubt-list';
+    for (const r of data.results) {
+      const li = document.createElement('li');
+      const a = document.createElement('a');
+      a.href = r.url; a.target = '_blank'; a.rel = 'noopener noreferrer';
+      a.textContent = r.title;
+      const p = document.createElement('p');
+      p.textContent = r.summary;
+      const meta = document.createElement('span');
+      meta.className = 'meta';
+      meta.textContent = [r.author, r.date].filter(Boolean).join(' · ');
+      li.append(a, p, meta);
+      list.append(li);
+    }
+    const src = document.createElement('p');
+    src.className = 'src';
+    const more = document.createElement('a');
+    more.href = data.moreUrl; more.target = '_blank'; more.rel = 'noopener noreferrer';
+    more.textContent = 'Ciberdúvidas da Língua Portuguesa';
+    src.append('Fonte: ', more, ` · ${data.results.length} dúvidas mais relevantes para «${data.term}».`);
+    doubtsResult.append(list, src);
+  }
+
+  doubtsForm.onsubmit = async (e) => {
+    e.preventDefault();
+    const term = doubtsQuery.value.trim();
+    const api = window.REVISOR_CONFIG?.definitionApi;
+    if (!term) return;
+    if (!api) { doubtsMessage('Proxy não configurado.', true); return; }
+    const seq = ++doubtsSeq;
+    doubtsMessage('A pesquisar no Ciberdúvidas…');
+    try {
+      let data = doubtsCache.get(term.toLowerCase());
+      if (!data) {
+        const res = await fetch(`${api}/duvidas?q=${encodeURIComponent(term)}`);
+        if (!res.ok) throw new Error();
+        data = await res.json();
+        doubtsCache.set(term.toLowerCase(), data);
+      }
+      if (seq === doubtsSeq) renderDoubts(data);
+    } catch {
+      if (seq === doubtsSeq) doubtsMessage('Não foi possível consultar o Ciberdúvidas. Tenta novamente.', true);
+    }
+  };
+
   // Tradução entre português e inglês via DeepL (proxy guarda a chave).
   const trTarget = $('trTarget'), trBtn = $('translate'), trResult = $('trResult');
   const trActions = $('trActions'), trCopy = $('trCopy'), trApply = $('trApply');
@@ -665,6 +741,7 @@
   loadPersonal(langEl.value);
   renderPersonal();
   renderTargets();
+  updateDoubts();
   updateTranslateButton();
   loadSpeller(langEl.value)
     .then((s) => { speller = s; check(); loadOther(langEl.value); })

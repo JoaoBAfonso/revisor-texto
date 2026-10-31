@@ -11,6 +11,10 @@ Verificador ortográfico (português de Portugal e inglês US + UK) que corre in
 - **Português:** Priberam, via proxy em `proxy/` (o Priberam não permite pedidos diretos a partir de outra página).
 - **Inglês:** Wiktionary (API REST da Wikimedia), chamado diretamente do browser, sem proxy.
 
+## Dúvidas (Ciberdúvidas)
+
+Só em português: pesquisa a seleção (ou um termo escrito) no consultório do Ciberdúvidas e lista as 10 dúvidas mais relevantes, com ligação para a resposta. Passa pelo proxy (rota `/duvidas?q=`).
+
 ## Tradução (DeepL)
 
 Traduz a seleção, ou o texto todo, entre português e inglês (Reino Unido ou EUA). O DeepL exige uma chave de API que não pode ficar numa página pública, por isso o pedido passa pelo proxy, que guarda a chave.

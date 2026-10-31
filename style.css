@@ -61,10 +61,21 @@ mark.foreign.active { background: #cdb3ff; }
 #issues li.typo .note { background: #e6eefb; border-left-color: var(--blue); }
 #status { color: var(--muted); font-size: .85rem; font-weight: 600; margin: var(--s3) 0 var(--s5); }
 
-aside, .definition, .translation { background: var(--sand); border: 0; padding: var(--s5); }
+aside, .definition, .translation, .doubts { background: var(--sand); border: 0; padding: var(--s5); }
 aside { position: sticky; top: var(--s4); max-height: calc(100vh - 2 * var(--s4)); overflow: auto; }
-.definition, .translation { margin-top: var(--s5); }
+.definition, .translation, .doubts { margin-top: var(--s5); }
 .definition { margin-top: 0; }
+.doubts[hidden] { display: none; }
+.doubts-form { display: flex; gap: var(--s3); margin-bottom: var(--s4); }
+.doubts-form input { flex: 1; min-width: 0; min-height: 2.5rem; padding: var(--s2) var(--s3); font: inherit; border: 2px solid var(--ink); border-radius: 0; background: var(--card); color: var(--ink); }
+#doubtsResult { font-size: .95rem; line-height: 1.6; }
+#doubtsResult.error { color: var(--red); }
+.doubt-list li { padding: var(--s3) 0; border-bottom: 1px solid #c9c1b9; }
+.doubt-list li:first-child { padding-top: 0; }
+.doubt-list a { font-weight: 700; }
+.doubt-list p { margin: var(--s1) 0; color: var(--muted); font-size: .9rem; }
+.doubt-list .meta { font-size: .8rem; color: var(--muted); }
+#doubtsResult .src { font-size: .8rem; margin: var(--s3) 0 0; }
 ul { list-style: none; padding: 0; margin: 0; }
 #issues li { border-bottom: 1px solid #c9c1b9; padding: var(--s4) 0; }
 #issues li:first-child { padding-top: var(--s1); }
