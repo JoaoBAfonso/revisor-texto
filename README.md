@@ -1,4 +1,4 @@
-# Revisor de Texto
+﻿# Revisor de Texto
 
 Verificador ortográfico (português de Portugal e inglês US + UK) que corre inteiramente no browser, com Hunspell em WebAssembly.
 
@@ -17,7 +17,7 @@ Só em português: pesquisa a seleção (ou um termo escrito) no consultório do
 
 ## Notícias
 
-Só em português: pesquisa uma palavra ou expressão em Público, Expresso, RTP, SIC Notícias, TVI, Correio da Manhã e A Mensagem (sites à escolha). Os resultados vêm do RSS do Bing Notícias, via proxy (rota `/noticias?q=&sites=`), e ao clicar abre um popup com título, data e o resumo, com ligação para o artigo. Não se mostra o texto completo das notícias.
+Só em português: pesquisa uma palavra ou expressão em Público, Expresso, RTP, SIC Notícias, TVI, Correio da Manhã e A Mensagem (sites à escolha). Os resultados vêm do RSS do Bing Notícias, via proxy (rota `/noticias?q=&sites=`), e ao clicar abre um popup com título, data e o resumo, com ligação para o artigo. O popup mostra o autor e um excerto do início da notícia (cerca de 1800 caracteres, quando o site o disponibiliza ao proxy; caso contrário, o resumo), e permite inserir no editor uma ligação à notícia na seleção, em formato Markdown `[texto](url)`. Não se reproduz a notícia na íntegra.
 
 ## Tradução (DeepL)
 

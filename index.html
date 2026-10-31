@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Revisor de Texto</title>
-  <link rel="stylesheet" href="style.css?v=8">
+  <link rel="stylesheet" href="style.css?v=9">
 </head>
 <body>
   <header>
@@ -106,7 +106,10 @@
       <button type="button" id="answerClose" aria-label="Fechar">Fechar</button>
     </div>
     <div id="answerBody" class="dialog-body"></div>
-    <p class="dialog-foot"><a id="answerSource" target="_blank" rel="noopener noreferrer">Ver no Ciberdúvidas</a></p>
+    <p class="dialog-foot">
+      <a id="answerSource" target="_blank" rel="noopener noreferrer">Ver no Ciberdúvidas</a>
+      <button type="button" id="answerInsert" hidden></button>
+    </p>
   </dialog>
 
   <footer>
@@ -116,6 +119,6 @@
 
   <script src="config.js"></script>
   <script src="vendor/hunspell.js"></script>
-  <script src="app.js?v=8"></script>
+  <script src="app.js?v=9"></script>
 </body>
 </html>

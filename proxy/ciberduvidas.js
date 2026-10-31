@@ -3,7 +3,21 @@
 
 const BASE = 'https://ciberduvidas.iscte-iul.pt';
 const UA = 'Mozilla/5.0 (compatible; RevisorDeTexto/1.0)';
-const ENTITIES = { amp: '&', lt: '<', gt: '>', quot: '"', apos: "'", nbsp: ' ', '#x2F': '/' };
+const ENTITIES = {
+  amp: '&', lt: '<', gt: '>', quot: '"', apos: "'", nbsp: ' ', '#x2F': '/',
+  laquo: '«', raquo: '»', ndash: '–', mdash: '—', hellip: '…', lsquo: '‘', rsquo: '’', ldquo: '“', rdquo: '”',
+  ordm: 'º', ordf: 'ª', euro: '€', shy: '',
+};
+for (const [base, accents] of Object.entries({
+  a: 'acute grave circ tilde uml ring', e: 'acute grave circ uml', i: 'acute grave circ uml',
+  o: 'acute grave circ tilde uml', u: 'acute grave circ uml', n: 'tilde', c: 'cedil', y: 'acute',
+})) {
+  const marks = { acute: '\u0301', grave: '\u0300', circ: '\u0302', tilde: '\u0303', uml: '\u0308', ring: '\u030a', cedil: '\u0327' };
+  for (const acc of accents.split(' ')) {
+    ENTITIES[base + acc] = (base + marks[acc]).normalize('NFC');
+    ENTITIES[base.toUpperCase() + acc] = (base.toUpperCase() + marks[acc]).normalize('NFC');
+  }
+}
 
 export function decode(s) {
   return s.replace(/&(#x?[0-9a-f]+|[a-z]+);/gi, (m, e) => {

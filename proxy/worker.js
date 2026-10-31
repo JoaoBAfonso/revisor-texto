@@ -4,7 +4,7 @@
 //   GET  /duvidas?q=   -> dúvidas do consultório do Ciberdúvidas.
 import { lookupPriberam } from './priberam.js';
 import { searchCiberduvidas, fetchAnswer } from './ciberduvidas.js';
-import { searchNews, NEWS_SITES } from './noticias.js';
+import { searchNews, fetchArticle, NEWS_SITES } from './noticias.js';
 
 // Origens autorizadas a usar o proxy. Substituir pelo endereço do GitHub Pages.
 const ALLOWED_ORIGINS = ['https://joaobafonso.github.io', 'http://localhost:8765', 'http://localhost:8000'];
@@ -98,6 +98,17 @@ export default {
         return json(result, 200, { ...headers, 'Cache-Control': cache });
       } catch {
         return json({ error: 'Não foi possível pesquisar notícias' }, 502, headers);
+      }
+    }
+
+    if (url.pathname === '/noticia') {
+      const target = url.searchParams.get('url') || '';
+      if (target.length > 500) return json({ error: 'URL inválido' }, 400, headers);
+      try {
+        const result = await fetchArticle(target);
+        return json(result, 200, { ...headers, 'Cache-Control': 'public, max-age=3600' });
+      } catch {
+        return json({ error: 'Não foi possível obter a notícia' }, 502, headers);
       }
     }
 

@@ -604,6 +604,7 @@
     answerSource.textContent = 'Ver no Ciberdúvidas';
     answerSource.href = r.url;
     answerBody.className = 'dialog-body';
+    setupInsert(r.url);
     answerBody.textContent = 'A carregar a resposta…';
     if (!answerDialog.open) answerDialog.showModal();
     answerBody.scrollTop = 0;
@@ -679,8 +680,37 @@
   };
 
   // Notícias (só português): pesquisa via proxy; o popup mostra título, data e resumo, com ligação ao artigo.
-  const newsCache = new Map();
-  let newsSeq = 0;
+  const newsCache = new Map(), newsItemCache = new Map();
+  let newsSeq = 0, newsItemSeq = 0;
+
+  // Guarda a última seleção no editor: é nela que a ligação da notícia é inserida (em Markdown).
+  let lastSel = null;
+  document.addEventListener('selectionchange', () => {
+    if (document.activeElement !== textEl) return;
+    const { selectionStart: start, selectionEnd: end } = textEl;
+    const text = textEl.value.slice(start, end);
+    if (text.trim()) lastSel = { start, end, text };
+  });
+  const answerInsert = $('answerInsert');
+  function setupInsert(url) {
+    answerInsert.hidden = false;
+    answerInsert.disabled = !lastSel;
+    answerInsert.textContent = lastSel ? 'Inserir ligação na seleção' : 'Seleciona texto no editor para inserir a ligação';
+    answerInsert.onclick = () => {
+      let { start, end, text } = lastSel;
+      if (textEl.value.slice(start, end) !== text) {
+        start = textEl.value.indexOf(text);
+        if (start < 0) { answerInsert.textContent = 'A seleção já não existe no texto'; return; }
+        end = start + text.length;
+      }
+      recordChange(() => {
+        textEl.value = `${textEl.value.slice(0, start)}[${text}](${url})${textEl.value.slice(end)}`;
+      });
+      lastSel = null;
+      answerDialog.close();
+      check();
+    };
+  }
   const fmtDate = (iso) => (iso ? new Date(iso).toLocaleDateString('pt-PT', { day: 'numeric', month: 'long', year: 'numeric' }) : '');
   const newsMessage = (text, isError) => {
     newsResult.className = isError ? 'error' : '';
@@ -688,21 +718,45 @@
   };
 
   function openNews(r) {
+    const seq = ++newsItemSeq;
     answerTitle.textContent = r.title;
     answerSource.textContent = 'Ler no site';
     answerSource.href = r.url;
     answerBody.className = 'dialog-body';
-    const meta = document.createElement('p');
-    meta.className = 'meta';
-    meta.textContent = [r.source, fmtDate(r.date)].filter(Boolean).join(' · ');
-    const box = document.createElement('div');
-    box.className = 'question';
-    const p = document.createElement('p');
-    p.textContent = r.description || 'Sem resumo disponível. Abre a notícia no site original para a ler.';
-    box.append(p);
-    answerBody.replaceChildren(meta, box);
+    setupInsert(r.url);
+
+    const render = (d, loading) => {
+      const meta = document.createElement('p');
+      meta.className = 'meta';
+      const by = d?.authors?.length ? `Por ${d.authors.join(', ')}` : (loading ? 'A obter autor…' : 'Autor não indicado');
+      meta.textContent = [by, r.source, fmtDate(r.date)].filter(Boolean).join(' · ');
+      const box = document.createElement('div');
+      box.className = 'question';
+      const paragraphs = (d?.text || '').split('\n\n').filter(Boolean);
+      if (!paragraphs.length) paragraphs.push(d?.description || r.description || 'Sem texto disponível. Abre a notícia no site original para a ler.');
+      for (const t of paragraphs) {
+        const p = document.createElement('p');
+        p.textContent = t;
+        box.append(p);
+      }
+      const note = document.createElement('p');
+      note.className = 'meta';
+      note.textContent = loading ? 'A carregar mais texto…'
+        : (d?.text ? 'Excerto do início da notícia. Para a ler na íntegra, abre-a no site original.' : '');
+      answerBody.replaceChildren(meta, box, note);
+    };
+
+    render(null, true);
     if (!answerDialog.open) answerDialog.showModal();
     answerBody.scrollTop = 0;
+
+    const api = window.REVISOR_CONFIG?.definitionApi;
+    const cached = newsItemCache.get(r.url);
+    if (cached) { render(cached, false); return; }
+    fetch(`${api}/noticia?url=${encodeURIComponent(r.url)}`)
+      .then((res) => { if (!res.ok) throw new Error(); return res.json(); })
+      .then((d) => { newsItemCache.set(r.url, d); if (seq === newsItemSeq) render(d, false); })
+      .catch(() => { if (seq === newsItemSeq) render({}, false); });
   }
 
   function renderNews(data) {

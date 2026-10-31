@@ -48,6 +48,79 @@ async function searchSite(term, key) {
   return parseRss(await res.text(), key);
 }
 
+const EXCERPT_CHARS = 1800;
+const BROWSER_UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36';
+
+const metaContent = (html, name) => {
+  const a = new RegExp(`<meta[^>]+(?:property|name)=["']${name}["'][^>]*?content=["']([^"']*)["']`, 'i').exec(html);
+  const b = new RegExp(`<meta[^>]+content=["']([^"']*)["'][^>]*?(?:property|name)=["']${name}["']`, 'i').exec(html);
+  return toText((a || b)?.[1] || '');
+};
+
+function namesOf(author) {
+  if (!author) return [];
+  if (typeof author === 'string') return [author];
+  if (Array.isArray(author)) return author.flatMap(namesOf);
+  return namesOf(author.name);
+}
+
+function jsonLdArticle(html) {
+  const re = /<script[^>]+type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi;
+  let m;
+  while ((m = re.exec(html))) {
+    try {
+      const data = JSON.parse(m[1]);
+      const nodes = [data, ...(Array.isArray(data) ? data : []), ...(data['@graph'] || [])];
+      const art = nodes.find((n) => n && /Article|Posting/i.test([n['@type']].flat().join(' ')));
+      if (art) return art;
+    } catch { /* JSON-LD inválido */ }
+  }
+  return null;
+}
+
+// Devolve só um excerto do que o site serve publicamente (autor, descrição e primeiros parágrafos).
+export async function fetchArticle(url) {
+  const u = new URL(url);
+  if (!/^https?:$/.test(u.protocol) || !siteOf(u.hostname)) throw new Error('Site não permitido');
+  const res = await fetch(u.href, { headers: { 'User-Agent': BROWSER_UA, 'Accept-Language': 'pt-PT,pt;q=0.9' }, redirect: 'follow' });
+  if (!res.ok) throw new Error(`O site respondeu ${res.status}`);
+  if (!siteOf(new URL(res.url).hostname)) throw new Error('Redirecionamento não permitido');
+  const html = (await res.text()).slice(0, 600000);
+  const ld = jsonLdArticle(html);
+
+  const authors = [...new Set([
+    ...namesOf(ld?.author),
+    ...[metaContent(html, 'author'), metaContent(html, 'article:author'), metaContent(html, 'sailthru.author')]
+      .filter((a) => a && !/^https?:/.test(a)),
+  ].map((a) => toText(a)).filter((a) => a && a.length < 80))];
+
+  const description = toText(ld?.description || '') || metaContent(html, 'og:description') || metaContent(html, 'description');
+
+  const body = html.replace(/<(script|style|noscript|nav|header|footer|aside|form)[\s\S]*?<\/\1>/gi, '');
+  // Várias páginas têm muitos <article> (cartões de outras notícias): escolhe o bloco com mais texto corrido.
+  const blocks = [...(body.match(/<article[\s\S]*?<\/article>/gi) || []), body];
+  const extract = (scope) => {
+    const out = [];
+    let sum = 0;
+    const pre = /<p[^>]*>([\s\S]*?)<\/p>/gi;
+    let p;
+    while ((p = pre.exec(scope)) && sum < EXCERPT_CHARS) {
+      const t = decode(toText(p[1])).replace(/\u00ad/g, '').trim();
+      if (t.length < 40 || !/[.!?…»”"):]$/.test(t) || out.includes(t)) continue;
+      out.push(t);
+      sum += t.length;
+    }
+    return { out, sum };
+  };
+  const best = blocks.map(extract).sort((a, b) => b.sum - a.sum)[0];
+  const paragraphs = best.out;
+
+  let text = paragraphs.join('\n\n');
+  if (!text && ld?.articleBody) text = toText(ld.articleBody);
+  if (text.length > EXCERPT_CHARS) text = `${text.slice(0, EXCERPT_CHARS).replace(/\s+\S*$/, '')}…`;
+  return { url: res.url, authors, description, text };
+}
+
 export async function searchNews(term, keys) {
   const chosen = keys.filter((k) => NEWS_SITES[k]);
   const settled = await Promise.allSettled(chosen.map((k) => searchSite(term, k)));
@@ -56,3 +129,4 @@ export async function searchNews(term, keys) {
   results.sort((a, b) => b.date.localeCompare(a.date));
   return { term, results, failed };
 }
+
