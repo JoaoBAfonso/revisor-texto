@@ -589,150 +589,157 @@
   document.addEventListener('selectionchange', () => { if (document.activeElement === textEl) updateDefineButton(); });
   defineBtn.onclick = showDefinition;
 
-  // Dúvidas do Ciberdúvidas (só português), via proxy.
-  const doubtsEl = $('doubts'), doubtsForm = $('doubtsForm'), doubtsQuery = $('doubtsQuery');
-  const doubtsBtn = $('doubtsBtn'), doubtsResult = $('doubtsResult');
-  const doubtsCache = new Map();
-  let doubtsSeq = 0;
-  const newsEl = $('news'), newsForm = $('newsForm'), newsQuery = $('newsQuery');
-  const newsBtn = $('newsBtn'), newsResult = $('newsResult'), newsSites = $('newsSites');
-  const lawEl = $('law'), lawForm = $('lawForm'), lawQuery = $('lawQuery');
-  const lawBtn = $('lawBtn'), lawResult = $('lawResult'), lawSources = $('lawSources');
+  // ── Pesquisas: Ciberdúvidas, notícias e direito (só português) ──
+  const API = () => window.REVISOR_CONFIG?.definitionApi;
+
+  // Cria elementos sem repetição: h('a', { href, onclick }, 'texto', outroNó).
+  const h = (tag, props = {}, ...kids) => {
+    const el = document.createElement(tag);
+    for (const [k, v] of Object.entries(props)) {
+      if (v == null || v === false) continue;
+      if (k === 'class') el.className = v;
+      else if (k in el) el[k] = v;
+      else el.setAttribute(k, v);
+    }
+    el.append(...kids.flat().filter((k) => k != null && k !== false));
+    return el;
+  };
+  const extLink = (href, text) => h('a', { href, target: '_blank', rel: 'noopener noreferrer' }, text);
+  const checked = (fieldset) => [...fieldset.querySelectorAll('input:checked')].map((i) => i.value);
+  const fmtDate = (iso) => (iso ? new Date(iso).toLocaleDateString('pt-PT', { day: 'numeric', month: 'long', year: 'numeric' }) : '');
+
+  // Pedidos ao proxy com cache em memória; «keep» decide se a resposta merece ser guardada.
+  const memo = new Map();
+  async function getJson(path, params, { signal, keep = () => true } = {}) {
+    const url = `${API()}${path}?${new URLSearchParams(params)}`;
+    const key = url.toLowerCase();
+    if (memo.has(key)) return memo.get(key);
+    const res = await fetch(url, { signal });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
+    if (keep(data)) memo.set(key, data);
+    return data;
+  }
+
+  // Uma pesquisa = formulário + pedido ao proxy + desenho do resultado. Cancela o pedido anterior ao submeter outro.
+  function createSearch({ section, form, input, button, result, path, busy, fail, params, keep, render }) {
+    let controller = null;
+    const say = (text, isError = false) => { result.className = isError ? 'error' : ''; result.textContent = text; };
+    const sync = () => { button.disabled = !input.value.trim(); };
+
+    async function run() {
+      const term = input.value.trim();
+      if (!term) return;
+      if (!API()) { say('Proxy não configurado.', true); return; }
+      const extra = params?.() ?? {};
+      if (extra.error) { say(extra.error, true); return; }
+      controller?.abort();
+      controller = new AbortController();
+      say(busy);
+      try {
+        const data = await getJson(path, { q: term, ...extra }, { signal: controller.signal, keep });
+        result.className = '';
+        result.replaceChildren();
+        render(data);
+      } catch (err) {
+        if (err.name !== 'AbortError') say(fail, true);
+      }
+    }
+
+    form.addEventListener('submit', (e) => { e.preventDefault(); run(); });
+    input.addEventListener('input', sync);
+    return {
+      section, input, result, say, sync, run,
+      ask(term) { input.value = term; sync(); section.scrollIntoView({ block: 'start', behavior: 'smooth' }); run(); },
+    };
+  }
+
+  const doubts = createSearch({
+    section: $('doubts'), form: $('doubtsForm'), input: $('doubtsQuery'), button: $('doubtsBtn'), result: $('doubtsResult'),
+    path: '/duvidas', busy: 'A pesquisar no Ciberdúvidas…', fail: 'Não foi possível consultar o Ciberdúvidas. Tenta novamente.',
+    render: (data) => renderDoubts(data),
+  });
+  const newsSites = $('newsSites');
+  const news = createSearch({
+    section: $('news'), form: $('newsForm'), input: $('newsQuery'), button: $('newsBtn'), result: $('newsResult'),
+    path: '/noticias', busy: 'A pesquisar nas notícias…', fail: 'Não foi possível pesquisar as notícias. Tenta novamente.',
+    params: () => { const sites = checked(newsSites); return sites.length ? { sites: sites.join(',') } : { error: 'Escolhe pelo menos um site.' }; },
+    render: (data) => renderNews(data),
+  });
+  const lawSources = $('lawSources');
+  const law = createSearch({
+    section: $('law'), form: $('lawForm'), input: $('lawQuery'), button: $('lawBtn'), result: $('lawResult'),
+    path: '/direito', busy: 'A interpretar e a pesquisar…', fail: 'Não foi possível pesquisar. Tenta novamente.',
+    params: () => { const sources = checked(lawSources); return sources.length ? { sources: sources.join(',') } : { error: 'Escolhe pelo menos uma fonte.' }; },
+    keep: (data) => data.results.length > 0,
+    render: (data) => renderLaw(data),
+  });
+  const searches = [doubts, news, law];
 
   function updateDoubts() {
     const pt = langEl.value === 'pt-PT';
-    doubtsEl.hidden = !pt;
-    newsEl.hidden = !pt;
-    lawEl.hidden = !pt;
-    doubtsBtn.disabled = !doubtsQuery.value.trim();
-    newsBtn.disabled = !newsQuery.value.trim();
-    lawBtn.disabled = !lawQuery.value.trim();
+    for (const s of searches) { s.section.hidden = !pt; s.sync(); }
   }
-  doubtsQuery.addEventListener('input', updateDoubts);
-  newsQuery.addEventListener('input', updateDoubts);
-  lawQuery.addEventListener('input', updateDoubts);
   document.addEventListener('selectionchange', () => {
     if (document.activeElement !== textEl) return;
     const sel = textEl.value.slice(textEl.selectionStart, textEl.selectionEnd).trim();
-    if (sel && sel.length <= 80 && !/\n/.test(sel)) { doubtsQuery.value = sel; newsQuery.value = sel; lawQuery.value = sel; updateDoubts(); }
+    if (sel && sel.length <= 80 && !/\n/.test(sel)) { for (const s of searches) s.input.value = sel; updateDoubts(); }
   });
-
-  const doubtsMessage = (text, isError) => {
-    doubtsResult.className = isError ? 'error' : '';
-    doubtsResult.textContent = text;
-  };
-
   const answerDialog = $('answerDialog'), answerBody = $('answerBody'), answerTitle = $('answerTitle');
   const answerSource = $('answerSource');
-  const answerCache = new Map();
-  let answerSeq = 0;
+  let dialogCtl = null; // cancela o carregamento do popup anterior
   $('answerClose').onclick = () => answerDialog.close();
   answerDialog.addEventListener('click', (e) => { if (e.target === answerDialog) answerDialog.close(); });
+
+  function openDialog({ title, label, url }) {
+    dialogCtl?.abort();
+    dialogCtl = new AbortController();
+    answerTitle.textContent = title;
+    answerSource.textContent = label;
+    answerSource.href = url;
+    answerBody.className = 'dialog-body';
+    setupInsert(url);
+    if (!answerDialog.open) answerDialog.showModal();
+    answerBody.scrollTop = 0;
+    return dialogCtl.signal;
+  }
 
   function renderAnswer(d) {
     answerTitle.textContent = d.title;
     answerBody.className = 'dialog-body';
     const wrap = (cls, label, html) => {
-      const box = document.createElement('div');
-      box.className = cls;
-      const h = document.createElement('h3');
-      h.textContent = label;
-      const body = document.createElement('div');
+      const body = h('div');
       body.innerHTML = html; // já limpo no proxy: só tags de texto, sem atributos
-      box.append(h, body);
-      return box;
+      return h('div', { class: cls }, h('h3', {}, label), body);
     };
-    const meta = document.createElement('p');
-    meta.className = 'meta';
-    meta.textContent = [d.author && `Resposta de ${d.author}`, d.date].filter(Boolean).join(' · ');
+    const meta = h('p', { class: 'meta' }, [d.author && `Resposta de ${d.author}`, d.date].filter(Boolean).join(' · '));
     answerBody.replaceChildren(wrap('question', 'Pergunta', d.question), wrap('answer', 'Resposta', d.answer), meta);
   }
 
   async function openAnswer(r) {
-    const api = window.REVISOR_CONFIG?.definitionApi;
-    const seq = ++answerSeq;
-    answerTitle.textContent = r.title;
-    answerSource.textContent = 'Ver no Ciberdúvidas';
-    answerSource.href = r.url;
-    answerBody.className = 'dialog-body';
-    setupInsert(r.url);
+    const signal = openDialog({ title: r.title, label: 'Ver no Ciberdúvidas', url: r.url });
     answerBody.textContent = 'A carregar a resposta…';
-    if (!answerDialog.open) answerDialog.showModal();
-    answerBody.scrollTop = 0;
     try {
-      let d = answerCache.get(r.url);
-      if (!d) {
-        const res = await fetch(`${api}/resposta?url=${encodeURIComponent(r.url)}`);
-        if (!res.ok) throw new Error();
-        d = await res.json();
-        answerCache.set(r.url, d);
-      }
-      if (seq === answerSeq) renderAnswer(d);
-    } catch {
-      if (seq === answerSeq) {
-        answerBody.className = 'dialog-body error';
-        answerBody.textContent = 'Não foi possível carregar a resposta. Usa a ligação abaixo para a ver no Ciberdúvidas.';
-      }
+      renderAnswer(await getJson('/resposta', { url: r.url }, { signal }));
+    } catch (err) {
+      if (err.name === 'AbortError') return;
+      answerBody.className = 'dialog-body error';
+      answerBody.textContent = 'Não foi possível carregar a resposta. Usa a ligação abaixo para a ver no Ciberdúvidas.';
     }
   }
 
   function renderDoubts(data) {
-    doubtsResult.className = '';
-    doubtsResult.replaceChildren();
-    if (!data.results.length) {
-      doubtsMessage(`Sem dúvidas encontradas para «${data.term}».`);
-      return;
-    }
-    const list = document.createElement('ul');
-    list.className = 'doubt-list';
-    for (const r of data.results) {
-      const li = document.createElement('li');
-      const a = document.createElement('a');
-      a.href = r.url; a.rel = 'noopener noreferrer';
-      a.onclick = (e) => { if (window.REVISOR_CONFIG?.definitionApi) { e.preventDefault(); openAnswer(r); } };
-      a.textContent = r.title;
-      const p = document.createElement('p');
-      p.textContent = r.summary;
-      const meta = document.createElement('span');
-      meta.className = 'meta';
-      meta.textContent = [r.author, r.date].filter(Boolean).join(' · ');
-      li.append(a, p, meta);
-      list.append(li);
-    }
-    const src = document.createElement('p');
-    src.className = 'src';
-    const more = document.createElement('a');
-    more.href = data.moreUrl; more.target = '_blank'; more.rel = 'noopener noreferrer';
-    more.textContent = 'Ciberdúvidas da Língua Portuguesa';
-    src.append('Fonte: ', more, ` · ${data.results.length} dúvidas mais relevantes para «${data.term}».`);
-    doubtsResult.append(list, src);
+    if (!data.results.length) { doubts.say(`Sem dúvidas encontradas para «${data.term}».`); return; }
+    doubts.result.append(
+      h('ul', { class: 'doubt-list' }, data.results.map((r) => h('li', {},
+        h('a', { href: r.url, rel: 'noopener noreferrer', onclick: (e) => { if (API()) { e.preventDefault(); openAnswer(r); } } }, r.title),
+        h('p', {}, r.summary),
+        h('span', { class: 'meta' }, [r.author, r.date].filter(Boolean).join(' · '))))),
+      h('p', { class: 'src' }, 'Fonte: ', extLink(data.moreUrl, 'Ciberdúvidas da Língua Portuguesa'),
+        ` · ${data.results.length} dúvidas mais relevantes para «${data.term}».`),
+    );
   }
 
-  doubtsForm.onsubmit = async (e) => {
-    e.preventDefault();
-    const term = doubtsQuery.value.trim();
-    const api = window.REVISOR_CONFIG?.definitionApi;
-    if (!term) return;
-    if (!api) { doubtsMessage('Proxy não configurado.', true); return; }
-    const seq = ++doubtsSeq;
-    doubtsMessage('A pesquisar no Ciberdúvidas…');
-    try {
-      let data = doubtsCache.get(term.toLowerCase());
-      if (!data) {
-        const res = await fetch(`${api}/duvidas?q=${encodeURIComponent(term)}`);
-        if (!res.ok) throw new Error();
-        data = await res.json();
-        doubtsCache.set(term.toLowerCase(), data);
-      }
-      if (seq === doubtsSeq) renderDoubts(data);
-    } catch {
-      if (seq === doubtsSeq) doubtsMessage('Não foi possível consultar o Ciberdúvidas. Tenta novamente.', true);
-    }
-  };
-
-  // Notícias (só português): pesquisa via proxy; o popup mostra título, data e resumo, com ligação ao artigo.
-  const newsCache = new Map(), newsItemCache = new Map();
-  let newsSeq = 0, newsItemSeq = 0;
 
   // Guarda a última seleção no editor: é nela que a ligação da notícia é inserida (em Markdown).
   let lastSel = null;
@@ -759,224 +766,100 @@
       answerDialog.close();
     };
   }
-  const fmtDate = (iso) => (iso ? new Date(iso).toLocaleDateString('pt-PT', { day: 'numeric', month: 'long', year: 'numeric' }) : '');
-  const newsMessage = (text, isError) => {
-    newsResult.className = isError ? 'error' : '';
-    newsResult.textContent = text;
-  };
 
-  function openNews(r) {
-    const seq = ++newsItemSeq;
-    answerTitle.textContent = r.title;
-    answerSource.textContent = 'Ler no site';
-    answerSource.href = r.url;
-    answerBody.className = 'dialog-body';
-    setupInsert(r.url);
-
-    const render = (d, loading) => {
-      const meta = document.createElement('p');
-      meta.className = 'meta';
+  async function openNews(r) {
+    const signal = openDialog({ title: r.title, label: 'Ler no site', url: r.url });
+    const draw = (d, loading) => {
       const by = d?.authors?.length ? `Por ${d.authors.join(', ')}` : (loading ? 'A obter autor…' : 'Autor não indicado');
-      meta.textContent = [by, r.source, fmtDate(r.date)].filter(Boolean).join(' · ');
-      const box = document.createElement('div');
-      box.className = 'question';
       const paragraphs = (d?.text || '').split('\n\n').filter(Boolean);
       if (!paragraphs.length) paragraphs.push(d?.description || r.description || 'Sem texto disponível. Abre a notícia no site original para a ler.');
-      for (const t of paragraphs) {
-        const p = document.createElement('p');
-        p.textContent = t;
-        box.append(p);
-      }
-      const note = document.createElement('p');
-      note.className = 'meta';
-      note.textContent = loading ? 'A carregar mais texto…'
+      const note = loading ? 'A carregar mais texto…'
         : (d?.text ? 'Excerto do início da notícia. Para a ler na íntegra, abre-a no site original.' : '');
-      answerBody.replaceChildren(meta, box, note);
+      answerBody.replaceChildren(
+        h('p', { class: 'meta' }, [by, r.source, fmtDate(r.date)].filter(Boolean).join(' · ')),
+        h('div', { class: 'question' }, paragraphs.map((t) => h('p', {}, t))),
+        h('p', { class: 'meta' }, note),
+      );
     };
-
-    render(null, true);
-    if (!answerDialog.open) answerDialog.showModal();
-    answerBody.scrollTop = 0;
-
-    const api = window.REVISOR_CONFIG?.definitionApi;
-    const cached = newsItemCache.get(r.url);
-    if (cached) { render(cached, false); return; }
-    fetch(`${api}/noticia?url=${encodeURIComponent(r.url)}`)
-      .then((res) => { if (!res.ok) throw new Error(); return res.json(); })
-      .then((d) => { newsItemCache.set(r.url, d); if (seq === newsItemSeq) render(d, false); })
-      .catch(() => { if (seq === newsItemSeq) render({}, false); });
+    draw(null, true);
+    try {
+      draw(await getJson('/noticia', { url: r.url }, { signal }), false);
+    } catch (err) {
+      if (err.name !== 'AbortError') draw({}, false);
+    }
   }
 
   function renderNews(data) {
-    newsResult.className = '';
-    newsResult.replaceChildren();
-    if (!data.results.length) {
-      newsMessage(`Sem notícias encontradas para «${data.term}».`);
-      return;
-    }
-    const list = document.createElement('ul');
-    list.className = 'doubt-list';
-    for (const r of data.results) {
-      const li = document.createElement('li');
-      const b = document.createElement('button');
-      b.type = 'button'; b.className = 'link';
-      b.textContent = r.title;
-      b.onclick = () => openNews(r);
-      const meta = document.createElement('span');
-      meta.className = 'meta';
-      meta.textContent = [r.source, fmtDate(r.date)].filter(Boolean).join(' · ');
-      li.append(b, meta);
-      list.append(li);
-    }
-    const src = document.createElement('p');
-    src.className = 'src';
-    src.textContent = `Resultados do Bing Notícias para «${data.term}».`;
-    if (data.failed?.length) src.textContent += ' Alguns sites não responderam.';
-    newsResult.append(list, src);
+    if (!data.results.length) { news.say(`Sem notícias encontradas para «${data.term}».`); return; }
+    news.result.append(
+      h('ul', { class: 'doubt-list' }, data.results.map((r) => h('li', {},
+        h('button', { type: 'button', class: 'link', onclick: () => openNews(r) }, r.title),
+        h('span', { class: 'meta' }, [r.source, fmtDate(r.date)].filter(Boolean).join(' · '))))),
+      h('p', { class: 'src' }, `Resultados do Bing Notícias para «${data.term}».`, data.failed?.length ? ' Alguns sites não responderam.' : ''),
+    );
   }
 
-  newsForm.onsubmit = async (e) => {
-    e.preventDefault();
-    const term = newsQuery.value.trim();
-    const api = window.REVISOR_CONFIG?.definitionApi;
-    const sites = [...newsSites.querySelectorAll('input:checked')].map((i) => i.value);
-    if (!term) return;
-    if (!api) { newsMessage('Proxy não configurado.', true); return; }
-    if (!sites.length) { newsMessage('Escolhe pelo menos um site.', true); return; }
-    const seq = ++newsSeq;
-    newsMessage('A pesquisar nas notícias…');
-    const key = `${term.toLowerCase()}|${sites.join(',')}`;
-    try {
-      let data = newsCache.get(key);
-      if (!data) {
-        const res = await fetch(`${api}/noticias?q=${encodeURIComponent(term)}&sites=${sites.join(',')}`);
-        if (!res.ok) throw new Error();
-        data = await res.json();
-        newsCache.set(key, data);
-      }
-      if (seq === newsSeq) renderNews(data);
-    } catch {
-      if (seq === newsSeq) newsMessage('Não foi possível pesquisar as notícias. Tenta novamente.', true);
-    }
-  };
-
-  // Direito e legislação: o proxy interpreta o termo (área do direito, diplomas) e pesquisa em fontes oficiais.
-  const lawCache = new Map();
-  let lawSeq = 0;
-  const lawMessage = (text, isError) => {
-    lawResult.className = isError ? 'error' : '';
-    lawResult.textContent = text;
-  };
-
+  // Direito e legislação: o proxy interpreta o termo e devolve um guia (direitos, passos, prazos, entidades)
+  // mais resultados de fontes oficiais.
   function openLaw(r) {
-    answerTitle.textContent = r.title;
-    answerSource.textContent = `Abrir em ${r.source}`;
-    answerSource.href = r.url;
-    answerBody.className = 'dialog-body';
-    setupInsert(r.url);
-    const meta = document.createElement('p');
-    meta.className = 'meta';
-    meta.textContent = [r.kind, r.source].join(' · ');
-    const box = document.createElement('div');
-    box.className = 'question';
-    const p = document.createElement('p');
-    p.textContent = r.description || 'Sem excerto disponível. Abre a fonte para ler o documento.';
-    box.append(p);
-    const note = document.createElement('p');
-    note.className = 'meta';
-    note.textContent = 'Excerto devolvido pelo motor de pesquisa. Confirma sempre o texto em vigor na fonte oficial.';
-    answerBody.replaceChildren(meta, box, note);
-    if (!answerDialog.open) answerDialog.showModal();
-    answerBody.scrollTop = 0;
+    openDialog({ title: r.title, label: `Abrir em ${r.source}`, url: r.url });
+    answerBody.replaceChildren(
+      h('p', { class: 'meta' }, [r.kind, r.source].join(' · ')),
+      h('div', { class: 'question' }, h('p', {}, r.description || 'Sem excerto disponível. Abre a fonte para ler o documento.')),
+      h('p', { class: 'meta' }, 'Excerto devolvido pelo motor de pesquisa. Confirma sempre o texto em vigor na fonte oficial.'),
+    );
+  }
+
+  const lawList = (items, ordered = false) => h(ordered ? 'ol' : 'ul', {}, items.map((t) => h('li', {}, t)));
+  const lawBlock = (title, ...content) => h('section', { class: 'law-block' }, h('h4', {}, title), ...content);
+  const entityList = (entities) => h('ul', { class: 'entity-list' }, entities.map((e) => h('li', {},
+    e.url ? extLink(e.url, e.name) : h('strong', {}, e.name), ` — ${e.role}`)));
+
+  function lawGuide(t, open) {
+    return h('details', { class: 'law-topic', open },
+      h('summary', {}, t.area),
+      h('p', { class: 'law-note' }, t.note),
+      t.rights?.length ? lawBlock('Os teus direitos', lawList(t.rights)) : null,
+      t.steps?.length ? lawBlock('Como agir', lawList(t.steps, true)) : null,
+      t.deadlines?.length ? lawBlock('Prazos', h('ul', { class: 'deadlines' }, t.deadlines.map((d) => h('li', {},
+        h('strong', {}, d.when), ` — ${d.what} `, h('span', { class: 'meta' }, `(${d.base})`))))) : null,
+      t.arguments?.length ? lawBlock('Argumentos úteis', lawList(t.arguments)) : null,
+      t.entities?.length ? lawBlock('Onde recorrer', entityList(t.entities)) : null,
+      t.refs?.length ? lawBlock('Diplomas e artigos (toca para pesquisar)', h('p', { class: 'chips' }, t.refs.map((ref) =>
+        h('button', { type: 'button', class: 'chip', onclick: () => law.ask(ref) }, ref)))) : null,
+    );
+  }
+
+  function lawResults(results) {
+    const groups = new Map();
+    for (const r of results) {
+      const kind = r.related ? `${r.kind} (área relacionada)` : r.kind;
+      if (!groups.has(kind)) groups.set(kind, []);
+      groups.get(kind).push(r);
+    }
+    return [...groups].map(([kind, items]) => h('div', { class: 'law-group' },
+      h('h3', {}, kind),
+      h('ul', { class: 'doubt-list' }, items.map((r) => h('li', {},
+        h('button', { type: 'button', class: 'link', onclick: () => openLaw(r) }, r.title),
+        h('span', { class: 'meta' }, r.source))))));
   }
 
   function renderLaw(data) {
-    lawResult.className = '';
-    lawResult.replaceChildren();
-    const { citation, topics } = data.interpretation || {};
-
-    if (citation) {
-      const c = document.createElement('p');
-      c.className = 'law-cite';
-      c.textContent = `Interpretado como citação: ${citation.label}`;
-      lawResult.append(c);
-    }
-    for (const t of topics || []) {
-      const card = document.createElement('div');
-      card.className = 'law-topic';
-      const h = document.createElement('h3');
-      h.textContent = t.area;
-      const n = document.createElement('p');
-      n.textContent = t.note;
-      const refs = document.createElement('ul');
-      for (const ref of t.refs) {
-        const li = document.createElement('li');
-        li.textContent = ref;
-        refs.append(li);
-      }
-      card.append(h, n, refs);
-      lawResult.append(card);
-    }
-
-    if (!data.results.length) {
-      const m = document.createElement('p');
-      m.textContent = `Sem resultados diretos nas fontes escolhidas para «${data.term}».`;
-      lawResult.append(m);
-    } else {
-      const list = document.createElement('ul');
-      list.className = 'doubt-list';
-      for (const r of data.results) {
-        const li = document.createElement('li');
-        const b = document.createElement('button');
-        b.type = 'button'; b.className = 'link';
-        b.textContent = r.title;
-        b.onclick = () => openLaw(r);
-        const meta = document.createElement('span');
-        meta.className = 'meta';
-        meta.textContent = [r.kind, r.source, r.related ? 'área relacionada' : ''].filter(Boolean).join(' · ');
-        li.append(b, meta);
-        list.append(li);
-      }
-      lawResult.append(list);
-    }
-
-    const src = document.createElement('p');
-    src.className = 'src';
-    src.append(`Interpretação orientativa, não substitui aconselhamento jurídico. Pesquisa via ${data.provider || 'motor de pesquisa'}. `);
-    if (data.failed?.length) src.append('Falhou a pesquisa. ');
-    if (data.moreUrl) {
-      const a = document.createElement('a');
-      a.href = data.moreUrl; a.target = '_blank'; a.rel = 'noopener noreferrer';
-      a.textContent = 'Ver mais no Google';
-      src.append(a);
-    }
-    lawResult.append(src);
+    const { citation, topics = [], toolkit = [] } = data.interpretation || {};
+    law.result.append(...[
+      citation ? h('p', { class: 'law-cite' }, `Interpretado como citação: ${citation.label}`) : null,
+      topics.map((t, i) => lawGuide(t, i === 0)),
+      data.results.length ? lawResults(data.results) : h('p', {}, `Sem resultados diretos nas fontes escolhidas para «${data.term}».`),
+      toolkit.length ? h('details', { class: 'law-topic law-toolkit' },
+        h('summary', {}, 'Ferramentas ao teu alcance, em qualquer situação'),
+        h('ul', { class: 'toolkit' }, toolkit.map((k) => h('li', {}, h('strong', {}, k.title), ` ${k.text}`,
+          k.entities.length ? entityList(k.entities) : null)))) : null,
+      h('p', { class: 'src' },
+        `Informação orientativa, que não substitui aconselhamento jurídico. Confirma sempre o texto em vigor e os prazos na fonte oficial. Pesquisa via ${data.provider || 'motor de pesquisa'}. `,
+        data.failed?.length ? 'Falhou a pesquisa. ' : null,
+        data.moreUrl ? extLink(data.moreUrl, 'Ver mais no Google') : null),
+    ].flat().filter(Boolean));
   }
-
-  lawForm.onsubmit = async (e) => {
-    e.preventDefault();
-    const term = lawQuery.value.trim();
-    const api = window.REVISOR_CONFIG?.definitionApi;
-    const sources = [...lawSources.querySelectorAll('input:checked')].map((i) => i.value);
-    if (!term) return;
-    if (!api) { lawMessage('Proxy não configurado.', true); return; }
-    if (!sources.length) { lawMessage('Escolhe pelo menos uma fonte.', true); return; }
-    const seq = ++lawSeq;
-    lawMessage('A interpretar e a pesquisar…');
-    const key = `${term.toLowerCase()}|${sources.join(',')}`;
-    try {
-      let data = lawCache.get(key);
-      if (!data) {
-        const res = await fetch(`${api}/direito?q=${encodeURIComponent(term)}&sources=${sources.join(',')}`);
-        if (!res.ok) throw new Error();
-        data = await res.json();
-        if (data.results.length) lawCache.set(key, data);
-      }
-      if (seq === lawSeq) renderLaw(data);
-    } catch {
-      if (seq === lawSeq) lawMessage('Não foi possível pesquisar. Tenta novamente.', true);
-    }
-  };
 
   // Tradução entre português e inglês via DeepL (proxy guarda a chave).
   const trTarget = $('trTarget'), trBtn = $('translate'), trResult = $('trResult');

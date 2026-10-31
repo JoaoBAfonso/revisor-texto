@@ -13,6 +13,12 @@ export const NEWS_SITES = {
   tvi: { name: 'TVI', domains: ['tvi.iol.pt'] },
   cm: { name: 'Correio da Manhã', domains: ['cmjornal.pt'] },
   mensagem: { name: 'A Mensagem', domains: ['amensagem.pt'] },
+  observador: { name: 'Observador', domains: ['observador.pt'] },
+  dn: { name: 'Diário de Notícias', domains: ['dn.pt'] },
+  jn: { name: 'Jornal de Notícias', domains: ['jn.pt'] },
+  eco: { name: 'ECO', domains: ['eco.sapo.pt'] },
+  poligrafo: { name: 'Polígrafo (verificação)', domains: ['poligrafo.sapo.pt'] },
+  lusa: { name: 'Lusa', domains: ['lusa.pt'] },
 };
 
 const siteOf = (host) => Object.keys(NEWS_SITES)

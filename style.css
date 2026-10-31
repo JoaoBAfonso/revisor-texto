@@ -327,10 +327,23 @@
   @media (hover: hover) { .doubt-list .link:hover:not(:disabled) { background: var(--orange); color: #fff; } }
 
   .law-cite { margin: 0 0 var(--s3); font-size: .85rem; font-weight: 700; }
-  .law-topic { margin: 0 0 var(--s4); padding: var(--s3) var(--s4); background: var(--card); border-left: 4px solid var(--orange); font-size: .9rem; }
-  .law-topic h3 { margin: 0 0 var(--s2); font-size: .8rem; letter-spacing: .06em; text-transform: uppercase; }
-  .law-topic p { margin: 0 0 var(--s2); }
-  .law-topic ul { margin: 0; padding-left: var(--s4); color: var(--muted); font-size: .85rem; list-style: disc; }
+  .law-topic { margin: 0 0 var(--s4); background: var(--card); border-left: 4px solid var(--orange); font-size: .9rem; }
+  .law-topic > summary { padding: var(--s3) var(--s4); font-size: .85rem; list-style-position: inside; }
+  .law-topic > :not(summary) { margin-inline: var(--s4); }
+  .law-topic[open] { padding-bottom: var(--s4); }
+  .law-note { margin-block: 0 var(--s3); }
+  .law-block { margin-bottom: var(--s3); }
+  .law-block h4 { margin: 0 0 var(--s1); font-family: var(--display); font-size: .75rem; letter-spacing: .08em; text-transform: uppercase; color: var(--orange-dark); }
+  .law-block ul, .law-block ol, .toolkit { margin: 0; padding-left: var(--s5); }
+  .law-block ul, .toolkit { list-style: disc; }
+  .law-block li, .toolkit li { margin-bottom: var(--s1); }
+  .law-block .entity-list, .toolkit .entity-list { margin-top: var(--s1); font-size: .85rem; }
+  .deadlines .meta { color: var(--muted); font-size: .8rem; }
+  .chips { display: flex; flex-wrap: wrap; gap: var(--s2); margin: 0; }
+  .chip { min-height: 0; padding: var(--s1) var(--s2); font-size: .75rem; letter-spacing: 0; text-transform: none; border-width: 1px; }
+  .law-group { margin-bottom: var(--s4); }
+  .law-group h3 { margin: 0 0 var(--s2); font-size: .75rem; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+  .law-toolkit { border-left-color: var(--blue); }
 
   /* Tradução */
   .tr-controls { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s2) var(--s3); font-size: .85rem; font-weight: 700; }
