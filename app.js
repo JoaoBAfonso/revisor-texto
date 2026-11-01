@@ -1429,6 +1429,7 @@ import { openReading, closeOnBackdrop } from './reading-dialog.js';
 
   // Páginas: #/ (início), #/revisor, #/noticias, #/direito. Cada ferramenta é uma vista própria.
   const VIEWS = {
+    investigar: { title: 'Investigar · Fumaça', product: 'Investigar', strap: 'Dados públicos, cruzados. Perguntas, não acusações. Fontes rastreáveis.' },
     home: { title: 'Fumaça · Toolbox', product: 'Toolbox', strap: 'Jornalismo e cidadania. Sem anúncios, sem rasto.' },
     revisor: { title: 'Revisor de texto · Fumaça', product: 'Revisor', strap: 'Verificação ortográfica independente. Sem anúncios, sem rasto.' },
     noticias: { title: 'Arquivo de notícias · Fumaça', product: 'Notícias', strap: 'Como as palavras são usadas nas notícias.' },

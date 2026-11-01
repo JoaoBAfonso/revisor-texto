@@ -3,11 +3,15 @@
 //   POST /translate    -> tradução via DeepL (a chave DEEPL_API_KEY fica só aqui, como segredo).
 //   GET  /duvidas?q=   -> dúvidas do consultório do Ciberdúvidas.
 //   GET  /direito?q=   -> interpretação jurídica e pesquisa em fontes oficiais (chave opcional SERPER_API_KEY).
+//   GET  /teia?fonte=  -> fontes da Teia: wikidata-pesquisa, wikidata, dr, arquivo, arquivo-site, wikipedia.
 import { lookupPriberam } from './priberam.js';
 import { searchCiberduvidas, fetchAnswer } from './ciberduvidas.js';
 import { searchNews, fetchArticle, NEWS_SITES } from './noticias.js';
 import { searchLaw, LAW_SOURCES, isLawHost } from './direito.js';
 import { fetchLawText } from './texto.js';
+import { collectionUrl, collectPublic, tedRequest } from './investigation.mjs';
+import { fundingUrl, collectFunding } from './investigation-funding.mjs';
+import { teiaRequest, teiaCollect } from './teia-sources.mjs';
 
 // Origens autorizadas a usar o proxy. Substituir pelo endereço do GitHub Pages.
 const ALLOWED_ORIGINS = ['https://joaobafonso.github.io', 'http://localhost:8765', 'http://localhost:8000'];
@@ -67,6 +71,29 @@ export default {
     if (origin && !ALLOWED_ORIGINS.includes(origin)) return json({ error: 'Origem não autorizada' }, 403, headers);
 
     const url = new URL(request.url);
+    if (url.pathname === '/investigar') {
+      if (request.method !== 'GET') return json({ error: 'Método não permitido' }, 405, headers);
+      const source = url.searchParams.get('source');
+      const query = url.searchParams.get('q') || '';
+      const offset = Number(url.searchParams.get('offset') || 0);
+      try { if (source === 'funding') fundingUrl(query, offset); else collectionUrl(source, query, offset); if (source === 'ted') tedRequest(query, offset); }
+      catch (error) { return json({ error: error.message }, 400, headers); }
+      try { return json(await (source === 'funding' ? collectFunding(query, offset) : collectPublic(source, query, offset)), 200, { ...headers, 'Cache-Control': 'no-store' }); }
+      catch (error) {
+        console.error('Recolha pública falhou:', error.message);
+        return json({ error: `Não foi possível recolher a fonte: ${error.message}` }, 502, headers);
+      }
+    }
+    if (url.pathname === '/teia') {
+      if (request.method !== 'GET') return json({ error: 'Método não permitido' }, 405, headers);
+      let teia;
+      try { teia = teiaRequest(url.searchParams); } catch (error) { return json({ error: error.message }, 400, headers); }
+      try { return json(await teiaCollect(teia), 200, { ...headers, 'Cache-Control': 'public, max-age=3600' }); }
+      catch (error) {
+        console.error('Fonte da Teia falhou:', teia.fonte, error.message);
+        return json({ error: `Não foi possível consultar a fonte: ${error.message}` }, 502, headers);
+      }
+    }
     if (url.pathname === '/translate') {
       if (request.method !== 'POST') return json({ error: 'Método não permitido' }, 405, headers);
       return translate(request, env, headers);
