@@ -14,6 +14,7 @@ import { readHtml, extractText } from '../texto.js';
 import { tokens } from './tokens.mjs';
 import { TOPICS } from '../guia.js';
 import { makeResolver, compileGuide } from './procedures.mjs';
+import { normalizeArticleKeys } from './article-keys.mjs';
 
 const OUT = join(dirname(fileURLToPath(import.meta.url)), '..', '..', 'data', 'lei');
 mkdirSync(OUT, { recursive: true });
@@ -140,6 +141,7 @@ async function fetchDoc(d) {
     secs: parsed.secs,
     arts: parsed.arts.map((a) => ({ ...a, r: refsOf(a.x, d.id).filter((r) => r !== `${d.id}:${a.k}`) })),
   };
+  normalizeArticleKeys(doc);
   writeFileSync(file(d.id), JSON.stringify(doc));
   return doc;
 }
@@ -168,6 +170,7 @@ const extra = [...euDocs, ...dreDocs];
 const entries = [...CATALOG, ...extra.filter((d) => !CATALOG.some((c) => c.id === d.id))].filter((d) => existsSync(file(d.id)));
 const entryOf = new Map(entries.map((e) => [e.id, e]));
 const docs = entries.map((d) => JSON.parse(readFileSync(file(d.id), 'utf8')));
+for (const d of docs) if (normalizeArticleKeys(d)) writeFileSync(file(d.id), JSON.stringify(d));
 // Texto integral só nos diplomas até à lei ordinária; os restantes (portarias, resoluções…) pesquisam-se por título e epígrafe.
 const FULLTEXT_MAX_RANK = 4;
 const keys = new Set(docs.flatMap((d) => d.arts.map((a) => `${d.id}:${a.k}`)));
@@ -215,7 +218,7 @@ const refs = Object.fromEntries(Object.entries(inbound).map(([k, v]) => [k, [...
 writeFileSync(join(OUT, 'meta.json'), JSON.stringify(meta));
 writeFileSync(join(OUT, 'index.json'), JSON.stringify(index));
 writeFileSync(join(OUT, 'refs.json'), JSON.stringify(refs));
-writeFileSync(join(OUT, 'heads.json'), JSON.stringify(docs.flatMap((d) => d.arts.map((a) => [a.k, a.n, a.t]))));
+writeFileSync(join(OUT, 'heads.json'), JSON.stringify(docs.flatMap((d) => d.arts.map((a) => a.part ? [a.k, a.n, a.t, a.part] : [a.k, a.n, a.t]))));
 
 const guide = compileGuide(makeResolver(entryOf, docs, ALIASES));
 writeFileSync(join(OUT, 'guia.json'), JSON.stringify(guide.out));

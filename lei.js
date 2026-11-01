@@ -1,9 +1,11 @@
 // Cérebro jurídico: navega e pesquisa o corpus de legislação (data/lei) no browser, sem servidor.
 import { tokens } from './proxy/corpus/tokens.mjs';
+import { openReading } from './reading-dialog.js';
+import { findNumberedDoc, numberedArticleKey } from './proxy/corpus/numbered-doc.mjs';
 
 const root = document.getElementById('brain');
 const DATA = 'data/lei';
-const REV = '6';
+const REV = '8';
 
 const h = (tag, props, ...kids) => {
   const el = document.createElement(tag);
@@ -33,7 +35,13 @@ const undelta = (list) => { let a = 0; return list.map((d) => (a += d)); };
 // Jurisprudência (data/juris/<diploma>.json, gerada por corpus/dgsi.mjs); nem todos os diplomas têm.
 const jurisCache = new Map();
 const juris = (id) => {
-  if (!jurisCache.has(id)) jurisCache.set(id, fetch(`data/juris/${id}.json?v=${REV}`).then((r) => (r.ok ? r.json() : null)).catch(() => null));
+  if (!jurisCache.has(id)) {
+    jurisCache.set(id, fetch(`data/juris/${id}.json?v=${REV}`).then((r) => {
+      if (r.status === 404) return null;
+      if (!r.ok) throw new Error(`Não foi possível carregar a jurisprudência (HTTP ${r.status}).`);
+      return r.json();
+    }).catch((e) => { jurisCache.delete(id); throw e; }));
+  }
   return jurisCache.get(id);
 };
 const hashFor = (...parts) => `#/direito/lei${parts.length ? `/${parts.map(encodeURIComponent).join('/')}` : ''}`;
@@ -108,10 +116,10 @@ function diplomasFor(q) {
 // "artigo 65 CRP", "65.º do CRP", "CRP, art. 65.º", "Código Civil, art. 483.º"; sem artigo, o diploma ("Lei n.º 2/99").
 function parseRef(q) {
   const s = q.trim().replace(/\s+/g, ' ');
-  let m = /^(.+?),?\s+art(?:igo)?s?\.?\s*(\d+(?:-[A-Z])?)\s*\.?\s*º?\b/i.exec(s);
-  if (m) return { name: plain(m[1]), k: m[2].toUpperCase() };
-  m = /^(?:art(?:igo)?s?\.?\s*)?(\d+(?:-[A-Z])?)\s*\.?\s*º?\s*(?:n\.?º?\s*\d+\s*)?(?:d[oae]s?\s+)?(.+)$/i.exec(s);
-  if (m) return { name: plain(m[2]), k: m[1].toUpperCase() };
+  let m = /^(.+?),?\s+art(?:igo)?s?\.?\s*(\d+)\s*\.?\s*[º°o]?(?:\s*-\s*([A-Z]{1,2}))?(?![\d-])/i.exec(s);
+  if (m) return { name: plain(m[1].replace(/,$/, '')), k: `${m[2]}${m[3] ? `-${m[3].toUpperCase()}` : ''}` };
+  m = /^(?:art(?:igo)?s?\.?\s*)?(\d+)\s*\.?\s*[º°o]?(?:\s*-\s*([A-Z]{1,2}))?\s+(?:n\.?º?\s*\d+\s*)?(?:d[oae]s?\s+)?(.+)$/i.exec(s);
+  if (m) return { name: plain(m[3]), k: `${m[1]}${m[2] ? `-${m[2].toUpperCase()}` : ''}` };
   return { name: plain(s), k: null };
 }
 
@@ -126,9 +134,15 @@ function findDoc(name) {
 // Devolve a ligação interna para um artigo ou diploma, ou null se não estiver no corpus.
 function resolveRef(text, { needArticle = false } = {}) {
   const { name, k } = parseRef(text);
-  const d = findDoc(name);
+  const numbered = /\b(Lei Orgânica|Lei Constitucional|Decreto-Lei|Decreto Legislativo Regional|Decreto Regulamentar|Decreto|Portaria|Regulamento|Lei)\s+n\.?º\s*(\d+(?:-[A-Z])?\/\d{2,4})/i.exec(text);
+  const d = numbered ? findNumberedDoc(meta.docs, numbered[1], numbered[2]) : findDoc(name);
   if (!d) return null;
   if (!k) return needArticle ? null : hashFor(d.id);
+  if (numbered) {
+    const articles = heads.slice(d.off, d.off + d.n).map(([key, , , part]) => ({ k: key, part }));
+    const key = numberedArticleKey(articles, k);
+    return key ? art(d.id, key) : needArticle ? null : hashFor(d.id);
+  }
   for (let i = 0; i < d.n; i++) if (heads[d.off + i][0] === k.toLowerCase() || heads[d.off + i][0] === k) return art(d.id, heads[d.off + i][0]);
   return needArticle ? null : hashFor(d.id);
 }
@@ -138,14 +152,18 @@ const rankName = (r) => meta.ranks.find((x) => x.rank === r)?.name || '';
 const badge = (d) => h('span', { class: 'brain-rank', 'data-rank': d.rank }, `Grau ${d.rank}`);
 
 function articleText(a) {
-  return h('div', { class: 'brain-text' }, a.x.split(/\n+/).map((line) => {
+  const paragraphs = () => h('div', { class: 'brain-text' }, a.x.split(/\n+/).map((line) => {
     const item = /^([a-z]\)|\d+[.)º]|[ivx]+\))\s/i.test(line);
     return h('p', { class: item ? 'item' : '' }, line);
   }));
+  if (a.x.length <= 1200) return paragraphs();
+  return h('div', { class: 'brain-text' },
+    h('p', null, `${a.x.slice(0, 420).trimEnd()}…`),
+    h('button', { type: 'button', class: 'brain-more', onclick: () => openReading(`Artigo ${a.n}${a.t ? ` — ${a.t}` : ''}`, paragraphs()) }, 'Ler artigo completo'));
 }
 
 function searchBox(value = '') {
-  const input = h('input', { type: 'search', maxlength: '120', value, placeholder: 'Tema, palavra ou artigo (ex.: despejo, artigo 65 CRP)…', 'aria-label': 'Perguntar ao guia jurídico', autocomplete: 'off' });
+  const input = h('input', { type: 'search', maxlength: '80', value, placeholder: 'Tema, palavra ou artigo (ex.: despejo, artigo 65 CRP)…', 'aria-label': 'Perguntar ao guia jurídico', autocomplete: 'off' });
   const go = (e) => {
     e.preventDefault();
     const q = input.value.trim();
@@ -272,11 +290,16 @@ async function section(q, topic) {
 function group(g, shown = 6) {
   const list = h('ul', { class: 'brain-hits' });
   const row = (x) => h('li', { class: 'brain-hit' }, hitCard(x));
-  g.items.forEach((x, i) => { const li = row(x); if (i >= shown) li.hidden = true; list.append(li); });
-  const more = g.items.length > shown ? h('button', {
-    type: 'button', class: 'brain-more',
-    onclick: (e) => { for (const li of list.querySelectorAll('li[hidden]')) li.hidden = false; e.target.remove(); },
-  }, `Mostrar mais ${g.items.length - shown}`) : null;
+  let count = 0;
+  const more = h('button', { type: 'button', class: 'brain-more', onclick: () => step() });
+  const step = () => {
+    const batch = g.items.slice(count, count + shown);
+    batch.forEach((x) => list.append(row(x)));
+    count += batch.length;
+    more.hidden = count === g.items.length;
+    more.textContent = `Mostrar mais artigos (${g.items.length - count} restantes)`;
+  };
+  step();
   return h('section', { class: 'brain-block brain-group', 'data-rank': g.rank },
     h('h3', null, h('span', null, `Grau ${g.rank}`), ' ', g.name),
     h('p', { class: 'brain-tier-note' }, g.note),
@@ -284,10 +307,11 @@ function group(g, shown = 6) {
 }
 
 function hitCard({ g, d, i }) {
-  const [k, n, t] = heads[g];
+  const [k, n, t, part] = heads[g];
   return h('a', { class: 'brain-hit-link', href: art(d.id, k) },
     h('span', { class: 'brain-ref' }, `${d.short} · artigo ${n}`),
     t ? h('span', { class: 'brain-title' }, t) : null,
+    part ? h('span', { class: 'brain-tier-note' }, part) : null,
     h('span', { class: 'brain-go', 'aria-hidden': 'true' }, '→'));
 }
 
@@ -299,8 +323,8 @@ function viewDoc(id, k) {
     const sec = /^sec-(\d+)$/.exec(k || '');
     const idx = k && !sec ? doc.arts.findIndex((a) => a.k === k) : -1;
     wrap.replaceChildren(...(idx >= 0 ? viewArticle(d, doc, idx) : sec ? viewSection(d, doc, +sec[1]) : viewToc(d, doc, k)).filter(Boolean));
-    window.scrollTo(0, 0);
-  }).catch((e) => wrap.replaceChildren(h('p', { class: 'brain-empty' }, e.message)));
+  }).catch((e) => wrap.replaceChildren(h('p', { class: 'brain-empty' }, e.message)))
+    .finally(() => { if (wrap.isConnected) root.style.minHeight = ''; });
   return [searchBox(), wrap];
 }
 
@@ -309,7 +333,7 @@ function docHeader(d) {
     badge(d),
     h('h3', null, d.name),
     h('p', { class: 'brain-tier-note' }, `${rankName(d.rank)} · ${d.title}`),
-    h('a', { class: 'brain-open', href: d.url, target: '_blank', rel: 'noopener noreferrer' }, `Fonte: ${/diariodarepublica/.test(d.url) ? 'DRE' : 'PGDL'} ↗`));
+    h('a', { class: 'brain-open', href: d.url, target: '_blank', rel: 'noopener noreferrer' }, `Fonte: ${/eur-lex/.test(d.url) ? 'EUR-Lex' : /diariodarepublica/.test(d.url) ? 'DRE' : 'PGDL'} ↗`));
 }
 
 // Estrutura de um diploma: filhos de cada secção, artigos por secção e contagens/intervalos da subárvore.
@@ -337,8 +361,9 @@ function structure(doc) {
   return (doc._st = { kids, arts, span });
 }
 
-const artList = (d, list) => h('ul', { class: 'brain-arts' }, list.map((a) => h('li', { 'data-k': plain(`${a.n} ${a.t || ''}`) },
-  h('a', { href: art(d.id, a.k) }, h('b', null, a.n), a.t ? h('span', null, a.t) : null))));
+const artList = (d, list) => h('ul', { class: 'brain-arts' }, list.map((a) => h('li', { 'data-k': plain(`${a.n} ${a.t || ''} ${a.part || ''}`) },
+  h('a', { href: art(d.id, a.k) }, h('b', null, a.n), a.t ? h('span', null, a.t) : null,
+    a.part ? h('small', null, a.part) : null))));
 
 function secCards(d, doc, ids) {
   const { span } = structure(doc);
@@ -406,24 +431,51 @@ function sectionPath(doc, a) {
 
 function jurisBlock(d, a) {
   const box = h('section', { class: 'brain-block brain-juris', hidden: true });
-  juris(d.id).then((j) => {
+  const populate = async () => {
+    const j = await juris(d.id);
     const items = (j?.arts?.[a.k] || []).map((i) => j.acs[i]);
-    if (!items.length) return;
+    if (!items.length) { box.hidden = true; box.replaceChildren(); return; }
     const pt = (iso) => iso.split('-').reverse().join('/');
+    const list = h('div', { class: 'brain-ac-list' });
+    let shown = 0;
+    const more = h('button', { type: 'button', class: 'brain-more', onclick: () => showMore() });
+    const showMore = () => {
+      const batch = items.slice(shown, shown + 8);
+      for (const ac of batch) {
+        const details = h('article', { class: 'brain-ac' },
+          h('div', { class: 'brain-ac-heading' },
+            h('div', { class: 'brain-ac-top' },
+              h('b', { class: 'brain-ac-court' }, ac.t),
+              h('time', { class: 'brain-ac-date', datetime: ac.d }, pt(ac.d))),
+            h('span', { class: 'brain-ac-process' }, `Processo ${ac.p}`),
+            ac.m ? h('span', { class: 'brain-ac-meta' }, ac.m) : null,
+            ac.dec ? h('div', { class: 'brain-ac-decision' }, h('strong', null, 'Decisão'), ac.dec) : null));
+        details.append(h('button', { type: 'button', class: 'brain-ac-read', onclick: () => openReading(`${ac.t} · ${pt(ac.d)} · Processo ${ac.p}`, [
+            h('blockquote', { class: 'brain-ac-summary' }, ac.s.split('\n').filter(Boolean).map((p) => h('p', null, p))),
+            h('p', { class: 'brain-ac-src' }, h('a', { href: `http://www.dgsi.pt${ac.u}`, target: '_blank', rel: 'noopener' }, `Texto integral no DGSI — proc. ${ac.p}`)),
+          ]) }, 'Ler sumário'));
+        list.append(details);
+      }
+      shown += batch.length;
+      more.hidden = shown === items.length;
+      more.textContent = `Mostrar mais acórdãos (${items.length - shown} restantes)`;
+    };
     box.hidden = false;
-    box.append(...[
+    box.replaceChildren(
       h('h3', null, 'Jurisprudência'),
-      h('p', { class: 'brain-juris-note' }, `${items.length === 1 ? '1 acórdão cita' : `${items.length} acórdãos citam`} este artigo no sumário (fonte: DGSI).`),
-      ...items.slice(0, 8).map((ac) => h('details', { class: 'brain-ac' },
-        h('summary', null,
-          h('b', null, `${ac.t} · ${pt(ac.d)}`),
-          ac.m ? h('span', { class: 'brain-ac-meta' }, ` · ${ac.m.toLowerCase()}`) : null,
-          ac.dec ? h('span', { class: 'brain-ac-meta' }, ` — ${ac.dec.toLowerCase()}`) : null),
-        h('blockquote', null, ac.s.split('\n').map((p) => h('p', null, p))),
-        h('p', { class: 'brain-ac-src' }, h('a', { href: `http://www.dgsi.pt${ac.u}`, target: '_blank', rel: 'noopener' }, `Texto integral no DGSI — proc. ${ac.p}`)))),
-      items.length > 8 ? h('p', { class: 'brain-juris-note' }, `Mostram-se os 8 mais recentes de ${items.length}.`) : null,
-    ].filter(Boolean));
-  }).catch(() => {});
+      h('p', { class: 'brain-juris-note' }, `${items.length === 1 ? '1 acórdão associado' : `${items.length} acórdãos associados`} a este artigo (sumário ou legislação indicada no DGSI). Do mais recente para o mais antigo.`),
+      h('p', { class: 'brain-juris-note' }, 'Uma citação não significa concordância nem aplicação ao teu caso. Confirma o contexto no texto integral.'),
+      list, more);
+    showMore();
+  };
+  const refresh = () => populate().catch((e) => {
+    box.hidden = false;
+    box.replaceChildren(
+      h('h3', null, 'Jurisprudência'),
+      h('p', { class: 'brain-juris-note', role: 'alert' }, `Não foi possível apresentar a jurisprudência. ${e.message}`),
+      h('button', { type: 'button', class: 'brain-more', onclick: refresh }, 'Tentar novamente'));
+  });
+  refresh();
   return box;
 }
 
@@ -445,6 +497,8 @@ function viewArticle(d, doc, i) {
     h('article', { class: 'brain-article' },
       h('h4', null, h('small', null, `${d.short} · Artigo`), ' ', a.n),
       a.t ? h('p', { class: 'brain-epigraph' }, a.t) : null,
+      a.part ? h('p', { class: 'brain-note' }, a.part) : null,
+      a.refNote ? h('p', { class: 'brain-note', role: 'note' }, a.refNote) : null,
       articleText(a)),
     a.r.length ? h('section', { class: 'brain-block' }, h('h3', null, 'Este artigo remete para'), h('div', { class: 'brain-chips' }, a.r.map(chip))) : null,
     cited.length ? h('section', { class: 'brain-block' }, h('h3', null, 'Citado por'), h('div', { class: 'brain-chips' }, cited.map(chip))) : null,
@@ -461,20 +515,36 @@ function viewArticle(d, doc, i) {
 let token = 0;
 const guide = document.getElementById('law');
 const shell = document.getElementById('brain-shell');
-const modes = { guide: document.getElementById('modeGuide'), law: document.getElementById('modeLaw') };
+const modes = { guide: document.getElementById('modeGuide'), search: document.getElementById('modeSearch'), law: document.getElementById('modeLaw') };
 async function render() {
+  const analysing = location.hash === '#/direito/caso';
+  const searching = location.hash === '#/direito/pesquisa';
+  const situations = location.hash === '#/direito';
+  document.getElementById('legal-situations').hidden = !situations;
+  modes.guide.setAttribute('aria-current', String(situations));
+  modes.search.setAttribute('aria-current', String(searching));
+  guide.hidden = !searching;
+  document.getElementById('case-shell').hidden = !analysing;
+  document.getElementById('modeCase').setAttribute('aria-current', String(analysing));
+  if (analysing || searching || situations) {
+    ++token;
+    shell.hidden = true;
+    modes.law.setAttribute('aria-current', 'false');
+    return;
+  }
   const m = /^#\/direito(?:\/lei(?:\/(.*))?)?$/.exec(location.hash);
   const browsing = !!m && location.hash.startsWith('#/direito/lei');
   if (!m) return;
-  guide.hidden = browsing;
   shell.hidden = !browsing;
-  modes.guide.setAttribute('aria-current', String(!browsing));
   modes.law.setAttribute('aria-current', String(browsing));
   if (!browsing) return;
-  const parts = (m[1] || '').split('/').filter(Boolean).map(decodeURIComponent);
   const mine = ++token;
+  root.style.minHeight = `${root.getBoundingClientRect().height}px`;
   root.replaceChildren(loading());
   try {
+    let parts;
+    try { parts = (m[1] || '').split('/').filter(Boolean).map(decodeURIComponent); }
+    catch { throw new Error('Endereço da legislação inválido. Volta à hierarquia e escolhe um diploma.'); }
     await ready();
     if (mine !== token) return;
     let content;
@@ -483,8 +553,10 @@ async function render() {
     else if (parts[0] === 'grau') content = viewTier(Number(parts[1]));
     else content = viewDoc(parts[0], parts[1]);
     root.replaceChildren(...content.filter(Boolean));
-    window.scrollTo(0, 0);
+    if (!parts.length || ['busca', 'grau'].includes(parts[0]) || !meta.byId[parts[0]]) root.style.minHeight = '';
   } catch (e) {
+    if (mine !== token) return;
+    root.style.minHeight = '';
     root.replaceChildren(h('p', { class: 'brain-empty' }, `${e.message} Abre a página através de um servidor.`));
   }
 }
@@ -493,6 +565,29 @@ render();
 
 window.brain = {
   section,
+  async references(queries) {
+    await ready();
+    return queries.map(({ text, article }) => {
+      const reference = parseRef(text);
+      if (reference.name === 'lada' && meta.byId.d75177807) {
+        if (!reference.k) return hashFor('d75177807');
+        const doc = meta.byId.d75177807;
+        return heads.slice(doc.off, doc.off + doc.n).some(([key]) => key === reference.k) ? art(doc.id, reference.k) : null;
+      }
+      const european = /^(Regulamento|Diretiva)\s*\((UE|CE)\)\s*(?:n\.?\s*º\s*)?(\d{2,4}\/\d+)/i.exec(text);
+      if (european) {
+        const name = plain(`${european[1]} (${european[2]}) ${european[3]}`);
+        const matches = meta.docs.filter((doc) => [doc.title, doc.name, doc.short].some((value) =>
+          plain(value || '').replace(/\bn\s+/, '').startsWith(name)));
+        if (matches.length !== 1) return null;
+        const doc = matches[0];
+        if (!reference.k) return hashFor(doc.id);
+        return heads.slice(doc.off, doc.off + doc.n).some(([key]) => key === reference.k) ? art(doc.id, reference.k) : null;
+      }
+      // Inline links require an exact article; never silently redirect a missing article to its law.
+      return resolveRef(text, { needArticle: article });
+    });
+  },
   // Ligação interna para "artigo 37 CRP" e semelhantes; null se não for uma citação de artigo do corpus.
   async link(q) { await ready(); return resolveRef(q, { needArticle: true }); },
   async ref(q) { await ready(); return resolveRef(q); },

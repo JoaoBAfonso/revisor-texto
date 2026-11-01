@@ -54,7 +54,9 @@ async function translate(request, env, headers) {
   if (res.status === 403) return json({ error: 'Chave DeepL inválida.' }, 502, headers);
   if (!res.ok) return json({ error: `O DeepL respondeu com o erro ${res.status}.` }, 502, headers);
   const data = await res.json();
-  return json({ text: data.translations?.[0]?.text ?? '' }, 200, headers);
+  const translated = data.translations?.[0]?.text;
+  if (typeof translated !== 'string' || !translated.trim()) return json({ error: 'O DeepL devolveu uma tradução vazia ou inválida.' }, 502, headers);
+  return json({ text: translated }, 200, headers);
 }
 
 export default {

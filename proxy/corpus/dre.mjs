@@ -109,7 +109,7 @@ async function complete(all) {
       all.set(x.dbId, { dbId: x.dbId, frag: x.DiplomaFragmentadoId, tipo: x.tipo, numero: x.numero, ano: x.ano, designacao: x.designacao || '', title: x.title, emissor: x.emissor || '', data: x.dataPublicacao, temas: ['Citado no guia'] });
       console.log(`+ ${tipo} n.º ${num}`);
     } else if (x?.vigencia === 'VIGENTE') {
-      // Vigente mas sem consolidação no DRE: o texto original do ato é a versão corrente e importa-se tal e qual.
+      // Sem consolidação, importa-se o original sem garantir que integra alterações posteriores.
       const sumario = clean(x.sumario || '').split('\n')[0];
       all.set(x.dbId, { dbId: x.dbId, frag: '', original: true, tipo: x.tipo, numero: x.numero, ano: x.ano, designacao: x.designacao || sumario, title: x.title, emissor: x.emissor || '', data: x.dataPublicacao, temas: ['Citado no guia'] });
       console.log(`+ ${tipo} n.º ${num} (texto original, sem consolidação)`);
@@ -170,7 +170,7 @@ async function list() {
 }
 
 // ── 2. Descarregar ───────────────────────────────────────────────────────────────────────────────
-// Atos vigentes sem consolidação: o texto original (Conteudo_Detalhe) é a versão corrente.
+// Atos sem consolidação: a atualidade do original deve ser confirmada na fonte.
 async function fetchOriginalDoc(d) {
   const body = template('original');
   Object.assign(body.screenData.variables, { Tipo: SLUG(d.tipo), Key: `${String(d.numero).replace('/', '-')}-${d.dbId}` });

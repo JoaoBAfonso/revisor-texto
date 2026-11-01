@@ -25,7 +25,7 @@ export function decode(s) {
       const code = e[1].toLowerCase() === 'x' ? parseInt(e.slice(2), 16) : parseInt(e.slice(1), 10);
       return Number.isFinite(code) ? String.fromCodePoint(code) : m;
     }
-    return ENTITIES[e.toLowerCase()] ?? m;
+    return ENTITIES[e] ?? ENTITIES[e.toLowerCase()] ?? m;
   });
 }
 

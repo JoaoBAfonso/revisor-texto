@@ -70,7 +70,7 @@ window.LAW_KIT = (() => {
     administrativo: [
       { title: 'Reagir a uma decisão', text: 'Podes reclamar ao autor da decisão ou recorrer ao superior hierárquico, ou ir diretamente a tribunal administrativo. Cada via tem prazos próprios.', search: ['Código do Procedimento Administrativo, art. 191.º', 'recurso hierárquico CPA'] },
       { title: 'Fundamentação e audiência', text: 'A decisão tem de ser fundamentada e, em regra, deves ser ouvido antes de ela ser tomada. A falta de ambas pode tornar o ato ilegal.', search: ['Código do Procedimento Administrativo, art. 152.º', 'audiência prévia CPA'] },
-      { title: 'Silêncio da Administração', text: 'Se a Administração não responde dentro do prazo, há meios para a obrigar a decidir.', search: ['intimação para a prática de ato legalmente devido', 'CPA prazo decisão 90 dias'] },
+      { title: 'Silêncio da Administração', text: 'Perante falta de decisão, confirma o prazo aplicável, a contagem e eventual prorrogação antes de escolher o meio de reação.', search: ['condenação à prática de ato legalmente devido', 'CPA artigo 128 prazo decisão iniciativa particular'] },
     ],
     corrupcao: [
       { title: 'Transparência e escrutínio', text: 'Há deveres de declaração de interesses e de rendimentos, e regras sobre contratação pública, que ajudam a identificar conflitos de interesse.', search: ['conflito de interesses titulares cargos públicos', 'Código dos Contratos Públicos ajuste direto'] },
@@ -163,11 +163,18 @@ window.LAW_KIT = (() => {
       body: (f, c) => lines(
         `Exmos. Senhores de ${f('destinatario')}`, `(à atenção do Encarregado de Proteção de Dados)`, '',
         `Assunto: Exercício de direitos do titular de dados (Regulamento (UE) 2016/679, RGPD)`, '',
-        `${f('nome')}, com morada em ${f('morada')} (contacto: ${f('contacto')}), vem, ao abrigo dos artigos 15.º a 21.º do RGPD, solicitar:`, '',
-        `1. Confirmação de que tratam dados pessoais meus e acesso a esses dados, às finalidades, aos destinatários e à origem (art. 15.º).`,
-        `2. [Retificação / Apagamento / Limitação / Oposição ao tratamento] (arts. 16.º, 17.º, 18.º e 21.º), relativamente a: ${f('referencia')}.`, '',
+        `${f('nome')}, com morada em ${f('morada')} (contacto: ${f('contacto')}), vem, ao abrigo ${c.right === 'access' ? 'do artigo 15.º' : c.right === 'rectify' ? 'do artigo 16.º' : 'dos artigos 15.º a 21.º'} do RGPD, solicitar:`, '',
+        ...(c.right === 'rectify' ? [
+          `Retificação dos dados pessoais considerados inexatos, relativamente a: ${f('referencia')}. Indica a inexatidão e a correção pretendida no pedido concreto (art. 16.º).`,
+        ] : c.right === 'access' ? [
+          `Confirmação de que tratam dados pessoais meus e acesso a esses dados e à informação prevista no artigo 15.º, relativamente a: ${f('referencia')}.`,
+        ] : [
+          `1. Confirmação de que tratam dados pessoais meus e acesso a esses dados, às finalidades, aos destinatários e à origem (art. 15.º).`,
+          `2. [Retificação / Apagamento / Limitação / Oposição ao tratamento] (arts. 16.º, 17.º, 18.º e 21.º), relativamente a: ${f('referencia')}.`,
+        ]), '',
         `Pedido concreto: ${f('pedido')}`, '',
-        `Nos termos do art. 12.º, n.º 3, do RGPD, solicita-se resposta no prazo de um mês. Na falta de resposta ou em caso de recusa, será apresentada queixa à Comissão Nacional de Proteção de Dados.`, '',
+        c.right ? `Solicita-se informação sobre as medidas tomadas nos termos do artigo 12.º do RGPD, incluindo as condições de resposta e eventual prorrogação aplicáveis.`
+          : `Nos termos do art. 12.º, n.º 3, do RGPD, solicita-se resposta no prazo de um mês. Na falta de resposta ou em caso de recusa, será apresentada queixa à Comissão Nacional de Proteção de Dados.`, '',
         `${c.today}`, `${f('nome')}`, '(assinatura)'),
     },
     {

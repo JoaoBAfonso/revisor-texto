@@ -43,12 +43,12 @@ function parseCitation(term) {
     const label = `${type} n.º ${law[2]}`;
     return { label, query: `"${label}"` };
   }
-  const art = /\bart(?:igos?)?s?\.?\s*(\d{1,3}(?:\.?[ºo°])?(?:-[a-z])?)/i.exec(term);
+  const art = /\bart(?:igos?)?s?\.?\s*(\d{1,4}(?:\.?[ºo°])?(?:-[a-z])?)(?!\d)/i.exec(term);
   const code = /c[oó]digo\s+(penal|civil|de processo penal|de processo civil|do trabalho|das sociedades comerciais|cooperativo|do procedimento administrativo)|\b(cpp|cpc|cp|cc|crp|rgpd|cpa|cpta|cppt|ct)\b/i.exec(norm(term));
   if (art && code) {
     const name = code[1] ? CODES[code[1].toLowerCase()] : CODE_SHORT[code[2].toLowerCase()];
-    const n = art[1].replace(/[ºo°.]/g, '');
-    return { label: `${name}, art. ${n}.º`, query: `"${name}" "artigo ${n}.º"` };
+    const n = art[1].replace(/[ºo°.]/g, '').toUpperCase().replace(/^(\d+)(.*)$/, '$1.º$2');
+    return { label: `${name}, art. ${n}`, query: `"${name}" "artigo ${n}"` };
   }
   return null;
 }
@@ -83,6 +83,7 @@ export function interpret(term) {
     topics: hits.map((t) => ({
       id: t.id, area: t.area, note: t.note, rights: t.rights, steps: t.steps, deadlines: t.deadlines,
       arguments: t.arguments, refs: t.refs, expand: t.expand, also: t.also || [],
+      ...(t.guidance ? { guidance: t.guidance } : {}),
       crp: rankCrp(text, TOPIC_CRP[t.id] || []),
       entities: (t.entities || []).map((k) => ENTITIES[k]).filter(Boolean),
     })),
@@ -204,13 +205,16 @@ export async function searchLaw(term, keys, env = {}) {
   settled.forEach((s, i) => {
     if (s.status !== 'fulfilled') return;
     for (const r of s.value) {
-      const id = r.url.replace(/^https?:\/\/(www\.)?/, '').replace(/[?#].*$/, '');
+      const url = new URL(r.url);
+      url.hash = '';
+      url.searchParams.sort();
+      const id = url.href.replace(/^https?:\/\/(www\.)?/, '');
       if (seen.has(id) || (perSource[r.site] = (perSource[r.site] || 0) + 1) > PER_SOURCE) continue;
       seen.add(id);
       results.push({ ...r, related: jobs[i].related, score: relevance(r, tokens) });
     }
   });
-  const failed = settled.every((s) => s.status === 'rejected') ? chosen : [];
+  const failed = [...new Set(jobs.flatMap((job, i) => settled[i].status === 'rejected' ? job.keys : []))];
   // Diretos primeiro, os alargados (por área do direito) depois; em cada grupo, por relevância.
   results.sort((a, b) => Number(a.related) - Number(b.related) || b.score - a.score);
   const more = `${term} (${chosen.flatMap((k) => LAW_SOURCES[k].domains).map((d) => `site:${d}`).join(' OR ')})`;

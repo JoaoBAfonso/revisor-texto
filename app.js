@@ -1,3 +1,5 @@
+import { openReading, closeOnBackdrop } from './reading-dialog.js';
+
 (() => {
   const $ = (id) => document.getElementById(id);
   const textEl = $('text'), backdrop = $('backdrop'), langEl = $('lang');
@@ -24,6 +26,7 @@
   const store = {
     get(key, fallback) { try { return JSON.parse(localStorage.getItem(key)) ?? fallback; } catch { return fallback; } },
     set(key, value) { try { localStorage.setItem(key, JSON.stringify(value)); } catch { /* armazenamento cheio ou bloqueado */ } },
+    remove(key) { try { localStorage.removeItem(key); } catch { console.warn('Armazenamento local indisponível; o rascunho pode não ficar guardado.'); } },
   };
   let ignored = new Set(); // ignorados só nesta sessão
 
@@ -36,10 +39,10 @@
   // Dicionário pessoal separado por idioma; migra o antigo dicionário partilhado para pt-PT.
   const personalKey = (lang) => `personal:${lang}`;
   const legacyPersonal = store.get('personal', null);
-  if (legacyPersonal && localStorage.getItem(personalKey('pt-PT')) === null) {
+  if (legacyPersonal && store.get(personalKey('pt-PT'), null) === null) {
     store.set(personalKey('pt-PT'), legacyPersonal);
   }
-  localStorage.removeItem('personal');
+  store.remove('personal');
   let currentLang = 'pt-PT';
   let personal = new Set();
   function loadPersonal(lang) {
@@ -428,7 +431,9 @@
     return score[best] >= 2 && score[best] > score[other] ? best : null;
   }
 
+  let languageVersion = 0;
   async function setLanguage(lang) {
+    const version = ++languageVersion;
     langEl.value = lang;
     updateDefineButton();
     updateDoubts();
@@ -437,14 +442,16 @@
     trActions.hidden = true;
     store.set('lang', lang);
     try {
-      speller = await loadSpeller(lang);
+      const loaded = await loadSpeller(lang);
+      if (version !== languageVersion) return;
+      speller = loaded;
       loadPersonal(lang);
       renderPersonal();
       ignored = new Set();
       other = null;
       check();
       loadOther(lang);
-    } catch (e) { statusEl.textContent = e.message; }
+    } catch (e) { if (version === languageVersion) statusEl.textContent = e.message; }
   }
 
   async function loadOther(lang) {
@@ -546,9 +553,11 @@
     ].flat(Infinity).filter(Boolean));
   }
 
+  let definitionVersion = 0;
   async function showDefinition() {
     const word = selectedWord();
     if (!word) return;
+    const mine = ++definitionVersion;
     openPanel($('tool-definition'));
     const lang = langEl.value;
     const key = `${lang}:${word.toLowerCase()}`;
@@ -557,8 +566,10 @@
     try {
       const data = await (lang === 'en' ? fetchEnglish : fetchPortuguese)(word.toLowerCase());
       definitionCache.set(key, data);
+      if (mine !== definitionVersion || lang !== langEl.value) return;
       renderDefinition(data, lang);
     } catch (e) {
+      if (mine !== definitionVersion || lang !== langEl.value) return;
       definitionEl.replaceChildren();
       const msg = e instanceof TypeError
         ? 'Não foi possível contactar o serviço de definições (sem ligação, ou proxy offline/mal configurado).'
@@ -599,7 +610,7 @@
   const memo = new Map();
   async function getJson(path, params, { signal, keep = () => true } = {}) {
     const url = `${API()}${path}?${new URLSearchParams(params)}`;
-    const key = url.toLowerCase();
+    const key = url;
     if (memo.has(key)) return memo.get(key);
     const res = await fetch(url, { signal });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -611,26 +622,31 @@
   // Uma pesquisa = formulário + pedido ao proxy + desenho do resultado. Cancela o pedido anterior ao submeter outro.
   function createSearch({ section, form, input, button, result, path, busy, fail, params, keep, render, pre }) {
     let controller = null;
+    let version = 0;
     const say = (text, isError = false) => { result.className = isError ? 'error' : ''; result.textContent = text; };
     const sync = () => { button.disabled = !input.value.trim(); };
 
     async function run() {
       const term = input.value.trim();
       if (!term) return;
-      if (await pre?.(term)) return;
-      if (!API()) { say('Proxy não configurado.', true); return; }
-      const extra = params?.() ?? {};
-      if (extra.error) { say(extra.error, true); return; }
+      const mine = ++version;
       controller?.abort();
-      controller = new AbortController();
-      say(busy);
+      const request = new AbortController();
+      controller = request;
       try {
-        const data = await getJson(path, { q: term, ...extra }, { signal: controller.signal, keep });
+        if (await pre?.(term, () => mine === version)) return;
+        if (mine !== version) return;
+        if (!API()) { say('Proxy não configurado.', true); return; }
+        const extra = params?.() ?? {};
+        if (extra.error) { say(extra.error, true); return; }
+        say(busy);
+        const data = await getJson(path, { q: term, ...extra }, { signal: request.signal, keep });
+        if (mine !== version) return;
         result.className = '';
         result.replaceChildren();
         render(data);
       } catch (err) {
-        if (err.name !== 'AbortError') say(fail, true);
+        if (mine === version && err.name !== 'AbortError') say(fail, true);
       }
     }
 
@@ -639,8 +655,8 @@
     return {
       section, input, result, say, sync, run,
     ask(term) {
-        if (location.hash.startsWith('#/direito/lei') && section.id === 'law') {
-          location.hash = '#/direito';
+        if (section.id === 'law') {
+          location.hash = '#/direito/pesquisa';
           section.hidden = false;
         }
         input.value = term; sync(); openPanel(section); section.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); run();
@@ -699,9 +715,9 @@
     params: () => { const sources = checked(lawSources); return sources.length ? { sources: sources.join(',') } : { error: 'Escolhe pelo menos uma fonte.' }; },
     keep: (data) => data.results.length > 0,
     // "artigo 37 CRP": abre o artigo guardado em vez de pesquisar.
-    pre: async (term) => {
+    pre: async (term, isCurrent) => {
       const href = await (window.brain?.link(term).catch(() => null));
-      if (href) location.hash = href;
+      if (href && isCurrent()) location.hash = href;
       return !!href;
     },
     render: (data) => renderLaw(data),
@@ -723,7 +739,8 @@
   const answerSource = $('answerSource');
   let dialogCtl = null; // cancela o carregamento do popup anterior
   $('answerClose').onclick = () => answerDialog.close();
-  answerDialog.addEventListener('click', (e) => { if (e.target === answerDialog) answerDialog.close(); });
+  closeOnBackdrop(answerDialog);
+  answerDialog.addEventListener('close', () => dialogCtl?.abort());
 
   function openDialog({ title, label, url }) {
     dialogCtl?.abort();
@@ -857,7 +874,10 @@
     try {
       draw(await getJson('/noticia', { url: r.url }, { signal }), false);
     } catch (err) {
-      if (err.name !== 'AbortError') draw({}, false);
+      if (err.name !== 'AbortError') {
+        draw({}, false);
+        answerBody.append(h('p', { class: 'error', role: 'alert' }, 'Falhou o carregamento da notícia. Tenta novamente ou abre a ligação à fonte.'));
+      }
     }
   }
 
@@ -918,7 +938,12 @@
     try {
       draw(await getJson('/texto', { url: r.url, ...params }, { signal, keep: (d) => Boolean(d.text) }), false);
     } catch (err) {
-      if (err.name !== 'AbortError') draw({}, false);
+      if (err.name !== 'AbortError') {
+        draw({}, true);
+        answerBody.lastElementChild.textContent = 'Falhou o carregamento do documento. Tenta novamente ou abre a ligação à fonte.';
+        answerBody.lastElementChild.className = 'error';
+        answerBody.lastElementChild.setAttribute('role', 'alert');
+      }
     }
   }
 
@@ -927,7 +952,6 @@
     { params: { artigo: c.art }, title: `Constituição da República Portuguesa, art. ${c.art}.º`, intro: `Constituição · ${c.title}` },
   );
 
-  const lawList = (items, ordered = false) => h(ordered ? 'ol' : 'ul', {}, items.map((t) => h('li', {}, t)));
   const lawBlock = (title, ...content) => h('section', { class: 'law-block' }, h('h4', {}, title), ...content);
   const entityList = (entities) => h('ul', { class: 'entity-list' }, entities.map((e) => h('li', {},
     e.url ? extLink(e.url, e.name) : h('strong', {}, e.name), ` — ${e.role}`)));
@@ -982,8 +1006,7 @@
     const reset = h('button', { type: 'button', class: 'chip' }, 'Repor modelo');
     reset.onclick = () => { dirty = false; sync(); };
 
-    const card = h('details', { class: 'law-model' },
-      h('summary', {}, tpl.title),
+    const editor = h('div', { class: 'model-editor' },
       h('p', {}, h('strong', {}, 'Quando usar: '), tpl.when),
       h('p', { class: 'law-alert' }, h('strong', {}, 'Prazo: '), tpl.deadline),
       h('div', { class: 'model-fields' }, inputs.map(([k, el]) => h('label', {}, FIELDS[k] || k, el))),
@@ -991,6 +1014,10 @@
       h('p', { class: 'chips' }, copy, insert, download, reset),
       h('p', { class: 'meta' }, tpl.send, ' ', tpl.to.url ? extLink(tpl.to.url, `Abrir ${tpl.to.name}`) : `Destinatário: ${tpl.to.name}.`),
     );
+    const card = h('section', { class: 'law-model model-card' },
+      h('h4', {}, tpl.title),
+      h('p', {}, tpl.when),
+      h('button', { type: 'button', class: 'chip', onclick: () => openReading(tpl.title, editor) }, 'Abrir e preencher modelo'));
     return { card, sync };
   }
 
@@ -1002,7 +1029,7 @@
   const crpBlock = (items) => items?.length ? h('section', { class: 'law-block crp' },
     h('h4', {}, 'Constituição da República: o que ela diz'),
     h('ul', { class: 'crp-list' }, items.map((c) => h('li', {},
-      h('strong', {}, `Art. ${c.art}.º — ${c.title}. `), c.text, ' ',
+      h('strong', {}, `Art. ${c.art}.º — ${c.title}. `), c.text.length > 420 ? `${c.text.slice(0, 420).trimEnd()}…` : c.text, ' ',
       h('button', { type: 'button', class: 'chip', onclick: () => openArticle(c) }, 'Ler artigo completo'))))) : null;
 
   function lawTop(t, data, citation, scrollTo) {
@@ -1020,7 +1047,7 @@
         h('p', { class: 'law-area' }, t.area),
         h('p', { class: 'law-note' }, t.note),
         crpBlock(t.crp),
-        t.rights?.length ? lawBlock('Direitos à cabeça', lawList(t.rights.slice(0, 3))) : null,
+        t.rights?.length ? lawBlock('Direitos à cabeça', guidanceList(t, 'rights', 3)) : null,
         first ? h('p', { class: 'law-alert' }, h('strong', {}, 'Atenção ao prazo: '), `${first.when} — ${first.what.toLowerCase()}`) : null,
         h('nav', { class: 'law-nav', 'aria-label': 'Ir para' }, [['law-statute', 'A lei'], ['law-angles', 'Perspetivas'], ['law-found', 'Fontes'], ['law-act', 'Agir'], ['law-models', 'Modelos']]
           .map(([cls, label]) => h('button', { type: 'button', class: 'chip', onclick: () => scrollTo(cls) }, label)))),
@@ -1029,8 +1056,8 @@
         angles.length ? h('div', { class: 'angles' }, angles.map((a) => h('article', { class: 'angle' },
           h('h4', {}, a.title), h('p', {}, a.text),
           a.search?.length ? h('p', { class: 'chips' }, a.search.map(chipButton)) : null))) : null,
-        !angles.length && t.arguments?.length ? lawBlock('Argumentos úteis', lawList(t.arguments)) : null,
-        t.rights?.length > 3 ? h('details', { class: 'law-more' }, h('summary', {}, 'Todos os direitos desta área'), lawList(t.rights)) : null),
+        !angles.length && t.arguments?.length ? lawBlock('Argumentos úteis', guidanceList(t, 'arguments')) : null,
+        t.rights?.length > 3 ? h('details', { class: 'law-more' }, h('summary', {}, 'Todos os direitos desta área'), guidanceList(t, 'rights')) : null),
     ];
   }
 
@@ -1052,9 +1079,23 @@
   // Base legal do prazo: ligação interna ao artigo no corpus, quando existir.
   function baseLink(text) {
     const a = h('a', {}, text);
-    const fill = () => window.brain.link(text).then((href) => { if (href) a.href = href; }).catch(() => {});
+    const unavailable = (message) => a.replaceWith(h('span', { class: 'meta', role: 'status' }, `${text} — ${message}`));
+    const fill = () => window.brain.link(text).then((href) => {
+      if (href) a.href = href;
+      else unavailable('referência não encontrada no corpus');
+    }).catch(() => unavailable('não foi possível carregar a referência; tenta novamente a pesquisa'));
     if (window.brain) fill(); else window.addEventListener('brain-ready', fill, { once: true });
     return a;
+  }
+
+  function guidanceList(topic, field, limit) {
+    const items = limit ? topic[field].slice(0, limit) : topic[field];
+    return h(field === 'steps' ? 'ol' : 'ul', {}, items.map((text, index) => {
+      const item = topic.guidance?.[field]?.[index];
+      return h('li', {}, text, item ? h('p', { class: 'meta' },
+        item.kind === 'preparation' ? 'Preparação prática; normas de contexto: ' : 'Fundamento e limites a conferir: ',
+        item.refs.map((ref) => h('span', {}, baseLink(ref), ' '))) : null);
+    }));
   }
 
   function lawBottom(t, values, onChange, syncs) {
@@ -1065,10 +1106,13 @@
     const hasAngles = t && ANGLES[t.id]?.length;
     return [
       t ? lawSection('law-act', 'O que fazer a seguir', null,
-        t.steps?.length ? lawBlock('Passo a passo', lawList(t.steps, true)) : null,
+        t.steps?.length ? lawBlock('Passo a passo', guidanceList(t, 'steps')) : null,
         t.deadlines?.length ? lawBlock('Prazos', h('ul', { class: 'deadlines' }, t.deadlines.map((d) => h('li', {},
-          h('strong', {}, d.when), ` — ${d.what} `, h('span', { class: 'meta' }, '(', baseLink(d.base), ')'))))) : null,
-        hasAngles && t.arguments?.length ? lawBlock('Argumentos úteis', lawList(t.arguments)) : null,
+          h('strong', {}, d.when), ` — ${d.what} `, h('span', { class: 'meta' }, '(', baseLink(d.base), ')'),
+          d.trigger ? h('p', {}, h('strong', {}, 'Evento a confirmar: '), d.trigger) : null,
+          d.limits ? h('p', {}, h('strong', {}, 'Condições e limites: '), d.limits) : null,
+          d.contextRefs?.length ? h('p', {}, 'Conferir também: ', d.contextRefs.map((text) => h('span', {}, baseLink(text), ' '))) : null)))) : null,
+        hasAngles && t.arguments?.length ? lawBlock('Argumentos úteis', guidanceList(t, 'arguments')) : null,
         t.entities?.length ? lawBlock('Onde recorrer', entityList(t.entities)) : null) : null,
       lawSection('law-models', 'Modelos prontos a usar', 'Preenche os campos uma vez: servem para todos os modelos e ficam guardados só neste navegador (nome, morada e contacto). O texto pode ser editado à mão.',
         ...cards),
@@ -1133,6 +1177,7 @@
     en: [{ value: 'pt-PT', label: 'Português (Portugal)' }],
   };
   let trRange = null; // parte do texto que foi traduzida, para a poder substituir
+  let translationVersion = 0;
 
   function renderTargets() {
     trTarget.replaceChildren(...TARGETS[langEl.value].map((t) => Object.assign(document.createElement('option'), { value: t.value, textContent: t.label })));
@@ -1156,6 +1201,9 @@
     const text = textEl.value.slice(start, end);
     if (!text.trim()) return;
     const api = window.REVISOR_CONFIG?.definitionApi;
+    const mine = ++translationVersion;
+    const source = langEl.value;
+    const target = trTarget.value;
     trRange = null;
     trActions.hidden = true;
     trBtn.disabled = true;
@@ -1165,14 +1213,16 @@
       const res = await fetch(`${api}/translate`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text, source: langEl.value, target: trTarget.value }),
+        body: JSON.stringify({ text, source, target }),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error || 'Não foi possível traduzir.');
-      trRange = { start, end, original: text };
+      if (mine !== translationVersion) return;
+      if (typeof data.text !== 'string' || !data.text.trim()) throw new Error('O serviço devolveu uma tradução vazia ou inválida.');
+      trRange = { start, end, original: text, target };
       showTranslation(data.text);
     } catch (e) {
-      showTranslation(e instanceof TypeError ? 'Não foi possível contactar o serviço de tradução (sem ligação, ou proxy offline/mal configurado).' : e.message, true);
+      if (mine === translationVersion) showTranslation(e instanceof TypeError ? 'Não foi possível contactar o serviço de tradução (sem ligação, ou proxy offline/mal configurado).' : e.message, true);
     } finally {
       updateTranslateButton();
     }
@@ -1180,8 +1230,8 @@
 
   trBtn.onclick = translateText;
   trCopy.onclick = async () => {
-    await navigator.clipboard.writeText(trResult.textContent);
-    trCopy.textContent = 'Copiado!';
+    try { await navigator.clipboard.writeText(trResult.textContent); trCopy.textContent = 'Copiado!'; }
+    catch { trCopy.textContent = 'Não foi possível copiar'; }
     setTimeout(() => { trCopy.textContent = 'Copiar'; }, 1500);
   };
   trApply.onclick = () => {
@@ -1196,7 +1246,7 @@
     recordChange(() => {
       textEl.value = current.slice(0, trRange.start) + translated + current.slice(trRange.end);
     });
-    const targetLang = trTarget.value.startsWith('en') ? 'en' : 'pt-PT';
+    const targetLang = trRange.target.startsWith('en') ? 'en' : 'pt-PT';
     trRange = null;
     trActions.hidden = true;
     if (replacedAll) {
@@ -1391,6 +1441,9 @@
     if (view === currentView) return;
     currentView = view;
     for (const el of document.querySelectorAll('[data-view]')) el.hidden = el.dataset.view !== view;
+    const skip = document.querySelector('.skip');
+    skip.href = view === 'revisor' ? '#text' : `#view-${view}`;
+    skip.textContent = view === 'revisor' ? 'Saltar para o editor' : 'Saltar para o conteúdo';
     $('revisorControls').hidden = view !== 'revisor';
     $('product').textContent = VIEWS[view].product;
     $('strap').textContent = VIEWS[view].strap;
@@ -1399,6 +1452,13 @@
     if (view === 'revisor') window.dispatchEvent(new Event('resize'));
   }
   window.addEventListener('hashchange', route);
+  document.querySelector('.skip').addEventListener('click', (event) => {
+    event.preventDefault();
+    const target = currentView === 'revisor' ? textEl : $(`view-${currentView}`);
+    if (target !== textEl) target.tabIndex = -1;
+    target.focus({ preventScroll: true });
+    target.scrollIntoView({ block: 'start', behavior: 'auto' });
+  });
   route();
   loadSpeller(langEl.value)
     .then((s) => { speller = s; check(); loadOther(langEl.value); })

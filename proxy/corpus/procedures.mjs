@@ -3,14 +3,13 @@
 // diploma do corpus. Citações que não se resolvem ficam sem ligação e são listadas no build: um prazo sem
 // artigo verificável não pode ser dado como certo.
 import { ENTITIES, TOOLKIT, TOPICS } from '../guia.js';
+import { findNumberedDoc, numberedArticleKey } from './numbered-doc.mjs';
 
 const plain = (s) => s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\s+/g, ' ').trim();
 const TYPES = 'Lei Org[âa]nica|Lei Constitucional|Lei|Decreto-Lei|Decreto Legislativo Regional|Decreto Regulamentar|Decreto|Portaria|Regulamento';
 
 export function makeResolver(entries, docs, aliases) {
   const keys = new Set(docs.flatMap((d) => d.arts.map((a) => `${d.id}:${a.k}`)));
-  const byText = docs.map((d) => ({ id: d.id, text: `${d.title} ${entries.get(d.id).short} ${entries.get(d.id).name}`.replace(/[º°]/g, 'º') }));
-
   const docByName = (name) => {
     const n = plain(name);
     const hit = aliases.find(([, re]) => re.test(name));
@@ -20,18 +19,21 @@ export function makeResolver(entries, docs, aliases) {
   };
   const docByNumber = (type, num) => {
     // Os títulos do PGDL abreviam «Decreto-Lei» para «DL»: aceitam-se as duas formas.
-    const t = /^decreto-lei$/i.test(type) ? '(?:Decreto-Lei|DL)' : type;
-    const re = new RegExp(`(?<![-\\w])${t}\\s+n\\.?º\\s*${num.replace('/', '\\/')}\\b`, 'i');
-    return byText.find((d) => re.test(d.text))?.id || null;
+    return findNumberedDoc(docs, type, num)?.id || null;
   };
 
   // → { to: 'doc:artigo' | 'doc' | null, why? }
   return (text) => {
-    const art = /^(.+?),?\s+art(?:igo)?s?\.?\s*(\d+(?:-[A-Za-z]{1,2})?)\s*\.?\s*º?/i.exec(text.trim());
+    const art = /^(.+?),?\s+art(?:igo)?s?\.?\s*(\d+)\s*\.?\s*[º°o]?(?:\s*-\s*([A-Za-z]{1,2}))?(?![\d-])/i.exec(text.trim());
     if (art) {
-      const id = docByName(art[1]);
-      const k = art[2].toUpperCase();
+      const num = new RegExp(`^(${TYPES})\\s+n\\.?º\\s*(\\d+(?:-[A-Z])?/\\d{2,4})`, 'i').exec(art[1]);
+      const id = num ? docByNumber(num[1], num[2]) : docByName(art[1]);
+      const k = `${art[2]}${art[3] ? `-${art[3].toUpperCase()}` : ''}`;
       if (!id) return { to: null, why: `diploma «${art[1]}» não está no corpus` };
+      if (num) {
+        const key = numberedArticleKey(docs.find((d) => d.id === id).arts, k);
+        return key ? { to: `${id}:${key}` } : { to: id, why: `art. ${k}.º não existe em ${id}` };
+      }
       return keys.has(`${id}:${k}`) ? { to: `${id}:${k}` } : { to: id, why: `art. ${k}.º não existe em ${id}` };
     }
     const num = new RegExp(`(${TYPES})\\s+n\\.?º\\s*(\\d+(?:-[A-Z])?/\\d{2,4})`, 'i').exec(text);
@@ -53,7 +55,10 @@ export function compileGuide(resolve) {
   };
   const topics = TOPICS.map((t) => ({
     id: t.id, area: t.area, note: t.note, rights: t.rights, steps: t.steps, arguments: t.arguments, entities: t.entities,
-    deadlines: (t.deadlines || []).map((d) => ({ ...d, to: link(t.id, 'prazo', d.base) })),
+    ...(t.guidance ? { guidance: Object.fromEntries(Object.entries(t.guidance).map(([field, items]) => [field,
+      items.map((item) => ({ ...item, refs: item.refs.map((text) => ({ text, to: link(t.id, 'orientação', text) })) }))])) } : {}),
+    deadlines: (t.deadlines || []).map((d) => ({ ...d, to: link(t.id, 'prazo', d.base),
+      ...(d.contextRefs ? { contextRefs: d.contextRefs.map((text) => ({ text, to: link(t.id, 'contexto do prazo', text) })) } : {}) })),
     refs: (t.refs || []).map((text) => ({ text, to: link(t.id, 'norma', text) })),
   }));
   const withDeadlines = topics.reduce((n, t) => n + t.deadlines.length, 0);

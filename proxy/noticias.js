@@ -106,7 +106,7 @@ export async function fetchArticle(url) {
 
   const body = html.replace(/<(script|style|noscript|nav|header|footer|aside|form)[\s\S]*?<\/\1>/gi, '');
   // Várias páginas têm muitos <article> (cartões de outras notícias): escolhe o bloco com mais texto corrido.
-  const blocks = [...(body.match(/<article[\s\S]*?<\/article>/gi) || []), body];
+  const blocks = body.match(/<article\b[\s\S]*?<\/article>/gi) || [];
   const extract = (scope) => {
     const out = [];
     let sum = 0;
@@ -120,7 +120,7 @@ export async function fetchArticle(url) {
     }
     return { out, sum };
   };
-  const best = blocks.map(extract).sort((a, b) => b.sum - a.sum)[0];
+  const best = blocks.map(extract).filter((b) => b.sum > 0).sort((a, b) => b.sum - a.sum)[0] || extract(body);
   const paragraphs = best.out;
 
   let text = paragraphs.join('\n\n');
@@ -139,4 +139,3 @@ export async function searchNews(term, keys) {
   results.sort((a, b) => b.date.localeCompare(a.date));
   return { term, results, failed };
 }
-

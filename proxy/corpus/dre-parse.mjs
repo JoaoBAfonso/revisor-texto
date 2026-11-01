@@ -63,13 +63,13 @@ export function parseFragments(list, docId) {
 }
 
 // Converte o texto original de um ato (DetalheConteudo.Texto) no mesmo formato. Para diplomas vigentes
-// sem consolidação no DRE, o texto publicado é a versão corrente.
+// sem consolidação no DRE, a atualidade do texto original deve ser confirmada na fonte.
 const ART_LINE = /^Artigo\s+(?:(\d+)\.?\s*[º°o]?(?:\s*-\s*([A-Za-z]{1,3}))?|([úu]nico))\.?\s*$/i;
 const HEADING = /^(PARTE|LIVRO|T[IÍ]TULO|CAP[IÍ]TULO|SEC[CÇ][AÃ]O|SUBSEC[CÇ][AÃ]O)\s+[IVXLCD\dÚ]/i;
 const BODY = /^(\d+\s*-|[a-z]\)\s)/i;
 
 export function parseOriginal(text) {
-  const lines = String(text ?? '').split('\n').map((l) => l.replace(/\s+/g, ' ').trim());
+  const lines = String(text ?? '').split(/\r\n?|\n/).map((l) => l.replace(/\s+/g, ' ').trim());
   // Epígrafes e nomes de divisões não terminam em pontuação de frase; o corpo dos artigos termina.
   const label = (s) => s && s.length < 120 && !ART_LINE.test(s) && !HEADING.test(s) && !BODY.test(s) && !/[.;:]$/.test(s);
   const secs = [];

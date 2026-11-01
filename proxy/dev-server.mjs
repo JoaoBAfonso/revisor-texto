@@ -16,7 +16,7 @@ http.createServer(async (req, res) => {
   }
 
   const request = new Request(`http://localhost:8787${req.url}`, { method: req.method, headers, body });
-  const response = await worker.fetch(request, { DEEPL_API_KEY: process.env.DEEPL_API_KEY });
+  const response = await worker.fetch(request, { DEEPL_API_KEY: process.env.DEEPL_API_KEY, SERPER_API_KEY: process.env.SERPER_API_KEY });
   res.writeHead(response.status, Object.fromEntries(response.headers));
   res.end(await response.text());
 }).listen(8787, () => console.log('Proxy em http://localhost:8787'));

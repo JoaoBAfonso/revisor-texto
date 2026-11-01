@@ -109,7 +109,7 @@ add('cepmpl', /^CEPMPL\b/i);
 const EU_DOCS = join(HERE, 'eu', 'docs.json');
 if (existsSync(EU_DOCS)) for (const d of JSON.parse(readFileSync(EU_DOCS, 'utf8'))) if (d.alias?.length) DOC_ALIASES.push([d.id, new RegExp(`^(?:${d.alias.join('|')})\\b`, 'i')]);
 
-const NUM = /(\d{1,4})(?:\.?\s*[º°o])?(?:\s*-\s*([A-Z]{1,2})\b)?/g;
+const NUM = /(\d{1,4})(?:\.?\s*[º°o])?(?:\s*-\s*([A-Z]{1,2})\b)?/gi;
 // Entre a lista de artigos e o «do <diploma>» admitem-se números, alíneas e conectores («n.º 2, al. b), do CPC»).
 const GAP = /^((?:\s*(?:,|;|e|ou|n\.?[ºo]s?\.?\s*[\d\s,e.()a-z-]*?|al(?:[íi]neas?)?\.?\s*(?:[a-z]{1,2}\)\s*)+|ambos|todos|ss\.?|segs?\.?|seguintes|ex vi|conjugad[oa]s?(?:\s+com)?|aplic[áa]vel(?:\s+ex vi)?))*?)\s*d[oa]s?\s+(.{1,90})/i;
 
@@ -122,7 +122,16 @@ export function refsIn(text) {
     if (!gap) continue;
     const hit = DOC_ALIASES.find(([, a]) => a.test(gap[2]));
     if (!hit) continue;
-    for (const n of m[1].matchAll(NUM)) out.add(`${hit[0]}:${n[2] ? `${n[1]}-${n[2].toUpperCase()}` : n[1]}`);
+    let previous;
+    for (const n of m[1].matchAll(NUM)) {
+      const connector = previous ? m[1].slice(previous.index + previous[0].length, n.index).trim() : '';
+      if (previous && !previous[2] && !n[2] && /^(a|ao)$/i.test(connector)) {
+        const from = Number(previous[1]), to = Number(n[1]);
+        for (let k = from + 1; k < to; k++) out.add(`${hit[0]}:${k}`);
+      }
+      out.add(`${hit[0]}:${n[2] ? `${n[1]}-${n[2].toUpperCase()}` : n[1]}`);
+      previous = n;
+    }
   }
   return [...out];
 }
@@ -161,7 +170,7 @@ async function crawl(base, sigla) {
           const refs = validRefs(refsIn(`${d.sum}\n${d.legis}`));
           state[r.unid] = d.sum && refs.length ? { p: d.proc, d: d.date || r.date, u: r.url, m: d.meio, dec: d.dec, v: d.vot, desc: d.desc, s: d.sum, refs } : 0;
           if (state[r.unid]) added++;
-        } catch { /* tenta-se na próxima execução */ }
+        } catch (e) { console.warn(`${sigla}: falhou ${r.url}: ${e.message}; será tentado na próxima execução.`); }
       }));
       await sleep(250);
       if ((i / 4) % 50 === 49) save();

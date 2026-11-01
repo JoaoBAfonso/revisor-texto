@@ -123,13 +123,14 @@ export function tidy(lines, host = '') {
 
 // Extrai um artigo (com o seu cabeçalho) de um diploma já arrumado.
 export function sliceArticle(lines, n) {
-  const num = String(n).replace(/\D/g, '');
+  const wanted = /^(\d+)(?:\.?\s*[º°o])?(?:\s*-\s*([A-Za-z]+))?$/i.exec(String(n).trim());
+  if (!wanted) throw new Error('Número de artigo inválido');
   const start = lines.findIndex((l) => {
-    const m = /^## Artigo\s+(\d+)\.?\s*[º°o]?(-[A-Za-z]+)?/i.exec(l);
-    return m && m[1] === num && !m[2];
+    const m = /^## Artigo\s+(\d+)\.?\s*[º°o]?(?:\s*-\s*([A-Za-z]+)\b)?/i.exec(l);
+    return m && m[1] === wanted[1] && (m[2] || '').toUpperCase() === (wanted[2] || '').toUpperCase();
   });
   if (start < 0) return [];
-  const end = lines.findIndex((l, i) => i > start && /^## (Artigo|PARTE|LIVRO|T[IÍ]TULO|CAP[IÍ]TULO|SEC[CÇ][AÃ]O)\b/i.test(l));
+  const end = lines.findIndex((l, i) => i > start && /^## (Artigo|PARTE|LIVRO|T[IÍ]TULO|CAP[IÍ]TULO|SEC[CÇ][AÃ]O|SUBSEC[CÇ][AÃ]O|ANEXO)\b/i.test(l));
   return lines.slice(start, end < 0 ? undefined : end);
 }
 
