@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { existsSync, readFileSync } from 'node:fs';
 import * as G from './teia-graph.mjs';
 import * as S from './teia-signals.mjs';
-import { buildInvestigation, wikipediaStep, PARLIAMENT_FILE, WIKIDATA_PROFILE, RECOLHA } from './teia-fixture.test-helper.mjs';
+import { buildInvestigation, wikipediaStep, PARLIAMENT_FILE, WIKIDATA_PROFILE, DR_CONCESSION, RECOLHA } from './teia-fixture.test-helper.mjs';
 
 const HOJE = '2026-11-01';
 const PAYER = G.orgId('Casinos Atlântico');
@@ -110,11 +110,33 @@ test('P8: a cadeia quem paga → empresa da família → titular → decisão do
   assert.equal(chain.pergunta, 'Casinos Atlântico pagava a Quintaviva (empresa da família de Ana Exemplo Ferraz) enquanto o Governo decidia sobre Casinos Atlântico?');
   assert.deepEqual(chain.cadeia.map((item) => item.papel), ['paga', 'família', 'titular', 'decisão']);
   assert.deepEqual(Object.fromEntries(chain.criterios.map((item) => [item.id, item.estado])),
-    { ligacao: 'talvez', pagamento: 'talvez', durante: 'sim', simultaneo: 'talvez', emissor: 'talvez', decisao: 'sim' });
+    { ligacao: 'talvez', pagamento: 'talvez', durante: 'sim', destinatario: 'talvez', simultaneo: 'talvez', emissor: 'talvez', decisao: 'sim' });
   assert.ok(chain.itens.every((item) => !/Acórdão/.test(item.texto || '')), 'jurisprudência não é decisão do Estado');
   assert.ok(chain.alternativas.length >= 3 && chain.lacunas.length >= 2);
   assert.ok(chain.lei.some((item) => item.artigo === '73' && item.id === 'cpa'));
   assert.equal(byId(todos, `P3:alvo:${PAYER}`), undefined, 'quem paga não repete a pergunta como entidade ligada');
+});
+
+test('P8: pesquisar por nome ou assunto não confirma a identidade do destinatário, mesmo com NIF do pagador', () => {
+  for (const ligacao of ['nome', 'objeto']) {
+    const graph = buildInvestigation({ acts: false });
+    const payer = G.confirmIdentity(graph, PAYER, { nif: '500000001', nome: 'Casinos Atlântico, SA' });
+    G.addActs(graph, payer, { ...DR_CONCESSION, itens: [{
+      ...DR_CONCESSION.itens[0], excertos: [['Concessão atribuída a Casinos Atlântico Norte, SA.']],
+    }] }, { ligacao, consulta: ligacao === 'nome' ? '"Casinos Atlântico"' : 'concessão de jogo' });
+    const signal = byId(S.evaluateSignals(graph, { hoje: HOJE }).todos, `P8:alvo:${payer}:`);
+    assert.ok(signal, 'mantém a pista sem a converter numa identidade confirmada');
+    assert.equal(state(signal, 'durante'), 'sim');
+    assert.equal(state(signal, 'destinatario'), 'talvez');
+    assert.match(signal.criterios.find((item) => item.id === 'destinatario').nota, /filial/);
+    assert.ok(signal.lacunas.some((item) => /NIF do destinatário/.test(item.texto)));
+    const act = graph.afirmacoes.find((item) => item.rel === 'ato');
+    assert.equal(act.fonte.tipo, 'primaria', 'a origem é oficial, mas a ligação continua por confirmar');
+    assert.match(S.describeStatement(graph, act), /destinatário por confirmar/);
+    const restored = S.importGraph(S.exportGraph(graph));
+    assert.equal(state(byId(S.evaluateSignals(restored, { hoje: HOJE }).todos, `P8:alvo:${payer}:`), 'destinatario'), 'talvez');
+    assert.match(S.notebookMarkdown(graph, { sinais: [signal], hoje: HOJE }), /destinatário por confirmar/);
+  }
 });
 
 test('P2 e P7: contratos da sociedade com participação de 50% durante o mandato de deputada', () => {
@@ -154,7 +176,22 @@ test('P3: atos fracos (outro órgão, sem efeito patrimonial) não chegam a sina
   const decision = byId(S.evaluateSignals(graph, { hoje: HOJE }).todos, `P3:alvo:${shop}`);
   assert.equal(state(decision, 'emissor'), 'sim');
   assert.equal(state(decision, 'decisao'), 'sim');
+  assert.equal(state(decision, 'destinatario'), 'talvez');
   assert.equal(decision.itens.length, 1);
+});
+
+test('P4: uma pesquisa por nome não confirma que a entidade beneficiou durante o cargo', () => {
+  const graph = buildInvestigation({ acts: false, contracts: false });
+  const office = graph.afirmacoes.find((item) => item.rel === 'cargo-publico' && item.cargo?.executivo);
+  office.fim = '2025-06-01';
+  office.atual = false;
+  G.addStatement(graph, { de: G.SUBJECT, para: LAW_FIRM, rel: 'cargo-privado', inicio: '2026-01-01',
+    detalhe: 'Administradora', fonte: { tipo: 'primaria', nome: 'Declaração', url: 'https://exemplo.pt/declaracao' } });
+  G.addActs(graph, LAW_FIRM, { ...DR_CONCESSION, itens: [{ ...DR_CONCESSION.itens[0], data: '2025-05-01' }] });
+  const signal = byId(S.evaluateSignals(graph, { hoje: HOJE }).todos, 'P4:');
+  assert.ok(signal);
+  assert.equal(state(signal, 'setor'), 'talvez');
+  assert.match(signal.criterios.find((item) => item.id === 'setor').nota, /confirma a identidade/);
 });
 
 test('privacidade: o nome do cônjuge nunca entra no grafo, nos sinais nem nas exportações', () => {

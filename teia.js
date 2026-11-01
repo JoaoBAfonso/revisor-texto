@@ -3,7 +3,7 @@
 import { openReading, readingBackTo } from './reading-dialog.js';
 import { createDataClient, DATA_BASE, DATA_REPOSITORY, cleanText, normalizeName } from './proxy/teia-index.mjs';
 import * as G from './proxy/teia-graph.mjs';
-import * as S from './proxy/teia-signals.mjs';
+import * as S from './proxy/teia-signals.mjs?v=2';
 
 const SUBJECT = G.SUBJECT;
 const STORE = 'teia-v1';
@@ -18,7 +18,8 @@ const SOURCE_BADGE = { primaria: 'Oficial', secundaria: 'Secundária', manual: '
 const MARK = { sim: ['✔', 'confirmado'], talvez: ['?', 'por confirmar'], nao: ['✖', 'contra'], na: ['—', 'não se aplica'] };
 const ROLE = { paga: 'paga', 'família': 'família', ligada: 'entidade ligada', titular: 'titular do cargo', 'decisão': 'decisão do Estado' };
 const TIE_RELS = new Set(['cargo-privado', 'participacao', 'servico', 'apoio', 'co-mencao', 'manual', 'grupo', 'cliente']);
-const PAPEIS = { f: 'fornecedora', a: 'adjudicante', fa: 'fornecedora e adjudicante' };
+const PAPEIS = { f: 'fornecedora', a: 'adjudicante', fa: 'fornecedora e adjudicante', c: 'concorrente' };
+const INDEX_COUNT_HELP = 'As ocorrências no índice incluem os papéis de adjudicante, fornecedora e concorrente, podendo contar vários papéis no mesmo contrato. Não são uma contagem de contratos ganhos.';
 
 const h = (tag, props, ...children) => {
   const node = document.createElement(tag);
@@ -318,8 +319,8 @@ function renderIdentity(q, found) {
       entry.legs?.length ? `deputado em ${plural(entry.legs.length, 'legislatura', 'legislaturas')} (${entry.legs.join(', ')})` : ''].filter(Boolean).join(' · '),
     person, failure(found.people, 'O índice do Parlamento'), 'Declarações de interesses e biografias de quem foi deputado.');
   const contracts = group('teia-ent', 'Nos contratos públicos', entities,
-    (entry) => [entry.nif ? `NIF ${entry.nif}` : 'sem NIF no registo', plural(entry.contratos || 0, 'contrato', 'contratos'), PAPEIS[entry.papeis] || ''].filter(Boolean).join(' · '),
-    entity, failure(found.entities, 'O índice de contratos'), 'Portal BASE desde 2012. Confirma pelo NIF quando o conheces.');
+    (entry) => [entry.nif ? `NIF ${entry.nif}` : 'sem NIF no registo', plural(entry.contratos || 0, 'ocorrência no índice', 'ocorrências no índice'), PAPEIS[entry.papeis] || ''].filter(Boolean).join(' · '),
+    entity, failure(found.entities, 'O índice de contratos'), `Portal BASE desde 2012. Confirma pelo NIF quando o conheces. ${INDEX_COUNT_HELP}`);
   const wikidata = group('teia-wd', 'Na Wikidata', items, (entry) => [entry.descricao || 'sem descrição', entry.id].join(' · '),
     item, failure(found.wikidata, 'A Wikidata'), 'Cargos, empresas e datas registados de forma estruturada.');
   const sync = () => {
@@ -649,9 +650,11 @@ const STEPS = {
     const found = decisions.length ? `${decisions.length === 1 ? 'Uma é decisão do Estado' : `${decisions.length} são decisões do Estado`}${when} (${examples}).`
       : 'Nenhuma é uma decisão do Estado sobre a entidade.';
     return {
-      resumo: `${plural(added.length, 'publicação nova', 'publicações novas')} no Diário da República sobre ${target}. ${found}`,
+      resumo: `${plural(added.length, 'publicação nova', 'publicações novas')} na pesquisa do Diário da República por ${target}. ${found}`,
       consulta,
-      notas: action.ligacao === 'objeto' ? ['Estas publicações tratam do mesmo assunto, mas podem não nomear a entidade: lê cada uma antes de as ligar.'] : [],
+      notas: [action.ligacao === 'objeto'
+        ? 'Estas publicações tratam do mesmo assunto, mas podem não nomear a entidade: lê cada uma antes de as ligar.'
+        : 'Encontrar o nome não confirma quem recebeu a decisão. O ato pode referir uma filial, uma homónima ou uma concorrente: confirma a denominação, o NIF e o papel no texto integral.'],
     };
   },
 
@@ -1000,13 +1003,14 @@ function chooseIdentity(node, ranked, signal) {
       ranked.map((item) => h('label', { class: 'teia-choice' },
         h('input', { type: 'radio', name: 'teia-cand', value: item.id, checked: item === preset }),
         h('span', {}, h('strong', {}, item.nome), h('span', { class: 'meta' },
-          [item.nif ? `NIF ${item.nif}` : 'sem NIF', plural(item.contratos || 0, 'contrato', 'contratos'), PAPEIS[item.papeis] || '', item.coincide ? 'nome compatível' : 'nome diferente'].filter(Boolean).join(' · '))))),
+          [item.nif ? `NIF ${item.nif}` : 'sem NIF', plural(item.contratos || 0, 'ocorrência no índice', 'ocorrências no índice'), PAPEIS[item.papeis] || '', item.coincide ? 'nome compatível' : 'nome diferente'].filter(Boolean).join(' · '))))),
       h('label', { class: 'teia-choice is-none' }, h('input', { type: 'radio', name: 'teia-cand', value: '', checked: !preset }), h('span', {}, 'Nenhum destes'))),
     h('div', { class: 'teia-actions' },
       h('button', { type: 'submit', class: 'teia-primary' }, 'Confirmar'),
       h('button', { type: 'button', onclick: () => finish(null) }, 'Cancelar')));
     openReading(`Qual destes registos é ${short(node.nome)}?`, [
       h('p', {}, 'Escolhe só se tiveres a certeza: o NIF passa a identificar a entidade em toda a investigação. Na dúvida, «Nenhum destes».'),
+      h('p', { class: 'meta' }, INDEX_COUNT_HELP),
       (node.nomes || []).length > 1 ? h('p', { class: 'meta' }, `Nomes conhecidos: ${node.nomes.join('; ')}`) : null,
       form,
     ].filter(Boolean));
@@ -1032,7 +1036,7 @@ function webModel(result) {
     const [a, b] = [item.de, item.para].sort();
     const edge = pairs.get(`${a}|${b}`) || { a, b, kinds: new Set(), strong: false, items: [] };
     edge.kinds.add(EDGE_KIND[item.rel] || 'tie');
-    edge.strong ||= item.fonte?.tipo === 'primaria' || item.fonte?.tipo === 'manual';
+    edge.strong ||= item.rel !== 'ato' && (item.fonte?.tipo === 'primaria' || item.fonte?.tipo === 'manual');
     edge.items.push(item);
     pairs.set(`${a}|${b}`, edge);
   }
@@ -1147,21 +1151,21 @@ function webSection(result) {
     svg('text', { class: 'teia-node-label', 'text-anchor': 'middle', y: labelY }, label.map((line, index) => svg('tspan', { x: 0, dy: index ? 14 : 0 }, line))));
   }));
   webSvg = svg('svg', { viewBox: '0 0 720 540', class: 'teia-web-svg', role: 'group', 'aria-labelledby': 'teia-web-h', 'data-no-inline-links': '' }, threads, edges, nodes);
-  const rels = (edge) => unique(edge.items.map((item) => G.RELATIONS[item.rel] || item.rel)).join(', ');
+  const rels = (edge) => unique(edge.items.map((item) => item.rel === 'ato' ? 'resultado de pesquisa no Diário da República' : G.RELATIONS[item.rel] || item.rel)).join(', ');
   section.append(
     h('p', { class: 'meta' }, 'Passa por um nó para ver as ligações; abre-o para ler os factos. Os sinais acendem aqui as entidades envolvidas.'),
     h('div', { class: 'teia-web-frame' }, webSvg),
     h('ul', { class: 'teia-legend' },
       [['money', 'dinheiro: contratos ou pagamentos'], ['tie', 'função, participação ou menção'], ['act', 'publicação no Diário da República'], ['office', 'cargo público ou partido']]
         .map(([kind, label]) => h('li', {}, h('span', { class: `teia-swatch is-${kind}`, 'aria-hidden': 'true' }), label)),
-      h('li', {}, h('span', { class: 'teia-swatch is-weak', 'aria-hidden': 'true' }), 'tracejado: só fonte secundária')),
+      h('li', {}, h('span', { class: 'teia-swatch is-weak', 'aria-hidden': 'true' }), 'tracejado: fonte secundária ou destinatário por confirmar')),
     model.hidden ? h('p', { class: 'meta' }, `Mostramos as ${model.nodes.length} entidades mais relevantes. Outras ${model.hidden} estão no caderno e nas fichas.`) : null,
     h('details', { class: 'teia-web-list' }, h('summary', {}, 'Ler a teia como lista'),
       h('ul', {}, model.edges.map((edge) => h('li', {},
         h('button', { type: 'button', class: 'teia-link', onclick: (event) => openNode(edge.a, event.currentTarget) }, short(nameOf(edge.a))),
         ` — ${rels(edge)} — `,
         h('button', { type: 'button', class: 'teia-link', onclick: (event) => openNode(edge.b, event.currentTarget) }, short(nameOf(edge.b))),
-        edge.strong ? '' : ' (só fonte secundária)')))));
+        edge.strong ? '' : edge.items.some((item) => item.rel === 'ato') ? ' (destinatário por confirmar)' : ' (só fonte secundária)')))));
   return section;
 }
 
@@ -1242,7 +1246,7 @@ function entityMarks(id, now) {
   for (const item of acts) {
     const date = item.data || graph.nos[item.de]?.data;
     const start = toMs(date);
-    const text = `Decisão no Diário da República, ${S.shortDate(date)}: ${cleanText(graph.nos[item.de]?.sumario || item.detalhe, 110)}`;
+    const text = `Resultado no Diário da República (destinatário por confirmar), ${S.shortDate(date)}: ${cleanText(graph.nos[item.de]?.sumario || item.detalhe, 110)}`;
     if (Number.isNaN(start)) { undated += 1; continue; }
     marks.push({ start, shape: 'diamond', kind: 'act', title: text });
     lines.push(text);

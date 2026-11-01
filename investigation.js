@@ -5,7 +5,7 @@ import { timelineEvents, timelinePage, timelineCsv } from './proxy/investigation
 import { FUNDING_SOURCES } from './proxy/investigation-funding.mjs';
 import { HYPOTHESIS_STATES, EVIDENCE_ROLES, saveHypothesis } from './proxy/investigation-hypotheses.mjs';
 import { chooseTrail, discoveryPage } from './proxy/investigation-discovery.mjs';
-import { createTeia } from './teia.js?v=1';
+import { createTeia } from './teia.js?v=2';
 
 const root = document.getElementById('investigation');
 const h = (tag, props, ...children) => {

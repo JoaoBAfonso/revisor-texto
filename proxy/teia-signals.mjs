@@ -375,6 +375,13 @@ function patternP2(graph, holder, org, ties, hoje) {
 
 const PATRIMONIAL = new Set(['concessão', 'licença ou autorização', 'apoio financeiro', 'benefício fiscal', 'contrato ou aditamento', 'expropriação', 'prorrogação']);
 
+function actRecipientCriterion(act) {
+  const via = act.ligacao === 'objeto' ? 'pelo assunto' : 'pelo nome';
+  return criterion('destinatario', 'O destinatário do ato é a mesma entidade investigada', 'talvez',
+    `Resultado de pesquisa ${via}${act.consulta ? ` («${act.consulta}»)` : ''}. Confirma no texto integral a denominação, o NIF e o papel da entidade: pode ser uma homónima, uma filial ou apenas uma concorrente.`,
+    [act.id]);
+}
+
 function issuerState(cargo, act, emissor) {
   if (cargo.ambito === 'governo') {
     if (!act.classe?.governo) return 'nao';
@@ -412,8 +419,7 @@ function patternP3(graph, holder, org, ties) {
     criterion('emissor', 'Emitido por órgão na esfera do cargo', lead.top.emissor,
       lead.top.emissor === 'talvez' && lead.top.office.cargo.chefe ? `${lead.node.emissor}: outro membro do Governo` : lead.node.emissor || ''),
     criterion('decisao', 'Decisão com efeito patrimonial (concessão, licença, contrato, apoio)', PATRIMONIAL.has(lead.decisao) ? 'sim' : 'talvez', lead.decisao || 'Tipo de decisão por apurar'),
-    criterion('destinatario', 'O ato nomeia a entidade', lead.act.ligacao === 'nome' ? 'sim' : 'talvez',
-      lead.act.ligacao === 'nome' ? '' : `Encontrado ao seguir o objeto («${lead.act.consulta}»): confirma se a entidade é concorrente ou destinatária`),
+    actRecipientCriterion(lead.act),
     criterion('vigente', 'A ligação existia à data do ato (ou nos 3 anos antes da posse)', lead.tie.estado,
       lead.tie.artigo8 ? 'Ligação terminada nos 3 anos anteriores à posse (art. 8.º)' : `Ligação: ${ties.map(tiePeriod).join('; ')}`, idsOf(ties)),
   ];
@@ -428,7 +434,7 @@ function patternP3(graph, holder, org, ties) {
     alternativas: [
       'O titular pode não ter intervindo ou ter pedido escusa (CPA, art. 73.º).',
       ...(lead.top.office.cargo.chefe ? ['Atos de outro membro do Governo não implicam intervenção pessoal do Primeiro-Ministro.'] : []),
-      ...(lead.act.ligacao === 'objeto' ? ['O ato pode dizer respeito a outra entidade do mesmo setor.'] : []),
+      'O ato pode dizer respeito a uma homónima, a uma filial ou a outra entidade do mesmo setor.',
       'A ligação pode ter terminado mais de 3 anos antes da posse (art. 8.º).',
     ],
     lacunas: [
@@ -450,8 +456,8 @@ function patternP4(graph, holder) {
       if (years < 0 || years > 3) continue;
       const before = graph.afirmacoes.some((item) => item.de === holder && item.para === role.para && item.id !== role.id
         && item.inicio && dayStart(item.inicio) < dayStart(office.inicio));
-      const during = actsOf(graph, role.para).some((act) => activeOn(office, act.data) !== 'nao' && issuerState(office.cargo, act, graph.nos[act.de]?.emissor || '') !== 'nao')
-        || (graph.contratos[role.para] || []).some((row) => activeOn(office, row.data) !== 'nao' && sphereState(office.cargo, buyerOf(graph, row.adjudicantes[0])) !== 'nao');
+      const relatedActs = actsOf(graph, role.para).some((act) => activeOn(office, act.data) !== 'nao' && issuerState(office.cargo, act, graph.nos[act.de]?.emissor || '') !== 'nao');
+      const duringContracts = (graph.contratos[role.para] || []).some((row) => activeOn(office, row.data) !== 'nao' && sphereState(office.cargo, buyerOf(graph, row.adjudicantes[0])) !== 'nao');
       const label = officeLabel(graph, office);
       signals.push({
         id: `P4:${holder}:${office.para}:${role.para}`, padrao: 'P4', sujeito: holder, entidade: role.para,
@@ -461,7 +467,10 @@ function patternP4(graph, holder) {
           criterion('executivo', 'Cargo político de natureza executiva', 'sim', label, [office.id]),
           criterion('prazo', 'Nova função nos 3 anos seguintes', 'sim', `${years.toFixed(1).replace('.', ',')} anos`, [role.id]),
           criterion('regresso', 'Não é regresso à entidade de antes do cargo (n.º 2)', before ? 'nao' : 'talvez', before ? 'Já tinha ligação antes do cargo' : 'Confirma o percurso anterior'),
-          criterion('setor', 'Entidade abrangida por decisões ou contratos do cargo', during ? 'sim' : 'talvez', during ? 'Há atos ou contratos na esfera do cargo durante o mandato' : 'Procura apoios, privatizações ou intervenção direta'),
+          criterion('setor', 'Entidade abrangida por decisões ou contratos do cargo', duringContracts ? 'sim' : 'talvez',
+            duringContracts ? 'Há contratos na esfera do cargo durante o mandato'
+              : relatedActs ? 'Há resultados de pesquisa no Diário da República durante o mandato; confirma a identidade e o papel da entidade no texto integral'
+                : 'Procura apoios, privatizações ou intervenção direta'),
         ],
         itens: [], provas: [office.id, role.id],
         alternativas: ['A empresa pode não atuar no setor que o titular tutelava.', 'Regresso à empresa ou atividade anterior é exceção (art. 10.º, n.º 2).'],
@@ -601,12 +610,13 @@ function patternP8(graph, holder) {
         criterion('pagamento', `${payerName} pagava a ${targetName}`, pays.some((item) => item.fonte?.tipo === 'primaria') ? 'sim' : 'talvez',
           `«${cleanText(primaryPay.fonte?.citacao, 220)}» — ${primaryPay.fonte?.nome || 'fonte'}${inicio ? ` (desde ${inicio})` : ''}${inferred ? `. ${inferred}` : ''}`, idsOf(pays)),
         lead
-          ? criterion('durante', 'Decisão do Estado sobre quem paga, durante cargo executivo', lead.top.estado, `${label} (${period(lead.top.office)}); ${lead.node.nome} de ${shortDate(lead.act.data)}`, idsOf([lead.top.office]))
+          ? criterion('durante', 'Ato publicado enquanto exercia cargo executivo', lead.top.estado, `${label} (${period(lead.top.office)}); ${lead.node.nome} de ${shortDate(lead.act.data)}`, idsOf([lead.top.office]))
           : rows.length
             ? criterion('durante', 'Decisão do Estado sobre quem paga, durante cargo executivo', 'talvez',
               `${plural(rows.length, 'contrato público', 'contratos públicos')} (${euro(rows.reduce((sum, entry) => sum + entry.row.valor, 0))}) durante ${label}`, idsOf(rows[0].active.map(({ office }) => office)))
             : criterion('durante', 'Decisão do Estado sobre quem paga, durante cargo executivo', checked ? 'nao' : 'talvez',
               checked ? `Sem atos sobre ${payerName} encontrados durante o cargo` : `Ainda não verificado: procura concessões, licenças e contratos de ${payerName}`),
+        ...(lead ? [actRecipientCriterion(lead.act)] : []),
         criterion('simultaneo', 'Os pagamentos coincidiam com a decisão', lead ? lead.simultaneo : rows.length ? best(rows.map((entry) => entry.simultaneo)) : 'talvez',
           `Pagamentos noticiados${inicio ? ` desde ${inicio}` : ' sem data'}${lead ? `; decisão de ${shortDate(lead.act.data)}` : ''}. Não se sabe se continuavam`),
         criterion('emissor', 'Decidido na esfera do cargo do titular', lead ? lead.top.emissor : 'talvez',
@@ -636,6 +646,7 @@ function patternP8(graph, holder) {
         ],
         alternativas: [
           'O titular pode não ter intervindo na decisão ou ter pedido escusa (CPA, art. 73.º).',
+          ...(lead ? ['O destinatário do ato pode ser uma filial ou outra entidade, não a que fez os pagamentos. Uma pesquisa por nome não comprova essa identidade.'] : []),
           ...(lead?.top.office.cargo.chefe && lead.top.emissor !== 'sim' ? ['A decisão é de outro membro do Governo: a intervenção pessoal do Primeiro-Ministro não está demonstrada.'] : []),
           'Os pagamentos podem ter terminado antes da decisão.',
           ...(pays.some((item) => item.fonte?.tipo !== 'primaria') ? ['A fonte secundária pode estar incompleta: confirma valores, datas e quem recebeu.'] : []),
@@ -645,6 +656,7 @@ function patternP8(graph, holder) {
         lacunas: [
           { texto: 'Lista de clientes na declaração única (art. 13.º, n.º 3, b): consta esta entidade?', fonte: MANUAL_SOURCES.transparencia },
           { texto: 'Despachos, atas e declarações de impedimento ou escusa no procedimento da decisão.', modelo: 'lada' },
+          ...(lead ? [{ texto: 'Identidade e NIF do destinatário do ato; se for outra sociedade, prova da relação com a entidade que fez os pagamentos.', fonte: MANUAL_SOURCES.atosSocietarios }] : []),
           ...(familyTie ? [{ texto: 'Sócios e gerência da entidade paga à data dos pagamentos.', fonte: MANUAL_SOURCES.atosSocietarios }] : []),
           ...(lead ? [] : [{ texto: `Concessões, licenças, apoios e contratos do Estado com ${payerName}.` }]),
         ],
@@ -934,7 +946,7 @@ export function describeStatement(graph, item) {
   const from = nameOf(graph, item.de);
   const to = item.para ? nameOf(graph, item.para) : '';
   const when = item.data ? ` em ${shortDate(item.data)}` : item.inicio || item.fim ? ` (${period(item)})` : item.declaradoEm ? ` (declarado em ${shortDate(item.declaradoEm)})` : '';
-  const relation = RELATIONS[item.rel] || item.rel;
+  const relation = item.rel === 'ato' ? 'resultado de pesquisa no Diário da República (destinatário por confirmar)' : RELATIONS[item.rel] || item.rel;
   const detail = item.detalhe && item.detalhe.trim().toLowerCase() !== String(relation).toLowerCase() ? `: ${cleanText(item.detalhe, 160)}` : '';
   return `${from} — ${relation}${to ? ` — ${to}` : ''}${detail}${when}`;
 }
